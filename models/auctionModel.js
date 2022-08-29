@@ -5,6 +5,14 @@ const categoryTypes = ["Tmp"]; // please edit this
 const productNameMaxLength = 30;
 const productDesciptionMaxLength = 200;
 
+
+const defaultMinimumBid = (incomingBid) => {
+    const digitCount = Math.ceil(Math.log10(incomingBid))
+    return (incomingBid >= 5000) ? Math.pow(10,digitCount-3) 
+    * Math.ceil( incomingBid / Math.pow(10,digitCount-1)) : 50
+}
+
+// Schema for productDetail 
 const productDetailSchema = new mongoose.Schema({
     productName: {
         type: String,
@@ -27,31 +35,37 @@ const productDetailSchema = new mongoose.Schema({
     }
 })
 
+// main Schema
 const auctionSchema = new mongoose.Schema({
     productDetail: {
         type: productDetailSchema,
         required: [true, "An auction must have the complete detail of the products."]
     },
     auctioneerID: {
-        type: mongoose.ObjectId,
+        type: mongoose.Schema.ObjectId,
+        ref : "User",
         required: [true, "An auction must has an auctioneer ID."]
     },
     startingPrice: {
         type: Number,
-        required: [true, "An auction must has a stating price."]
-        // TODO: Is posiive validator?
+        required: [true, "An auction must has a stating price."],
+        min : [0, "The starting price must not be negative."],
     },
     minimumBidPrice: {
         type: Number,
-        // TODO: Is posiive validator?
+        min : [1, "The minimum bid price must not be more than 0."]
+        // If undefined : use default method to calculate minumum bid price
     },
     expectedPrice: {
         type: Number,
-        // TODO: Is posiive validator?
+        min : [0, "The expected price must not be negative."]
+        // If undefined : Don't check the expected price since there are none
     },
     startDate: {
         type: Date,
-        required: [true, "An auction must has a starting date."]
+        default: Date.now(),
+        required: [true, "An auction must has a starting date."] 
+        // Date Set in pre middleware
     },
     endDate: {
         type: Date,
@@ -62,19 +76,28 @@ const auctionSchema = new mongoose.Schema({
         default: false
     },
     currentPrice: {
-        type: Number
-        // TODO: validator for updates:    is the number higher than now?
-        //                                 is it higher or equal than starting price
+        type: Number,
+        validate: {
+            validator: function(el){
+                const bidstep = this.minimumBidPrice | defaultMinimumBid(this.currentPrice | this.startingPrice)
+                return el >= (this.currentPrice + bidstep)
+             },
+             message: "The input bid is lower than the current bid + minimum bid step"
+        }
     },
     currentWinnerId: {
         type: mongoose.ObjectId,
+        ref : "User"
     },
     bidHistory: {
         type: [mongoose.ObjectId],
+        ref : "BidHistory",
         default: []
     },
+    // Add Date.now() + 6 month as default
     autoDestroy: {
-        type: Date
+        type: Date,
+        default : Date.now() + 6 * 30 * 24 * 60 * 60 * 1000
     },
     auctionStatus: {
         type: String,
@@ -83,7 +106,9 @@ const auctionSchema = new mongoose.Schema({
 })
 
 const Auction = mongoose.model('Auction', auctionSchema);
+const ProductDetail = mongoose.model('ProductDetail', productDetailSchema);
 
 module.exports = Auction;
+module.exports = ProductDetail;
 
 // TODO: Test using subdocuments
