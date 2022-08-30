@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 // const validator = require('validator');
 
-const categoryTypes = ["Tmp"]; // please edit this
+const categoryTypesEnum = ["Tmp"]; // please edit this
 const productNameMaxLength = 30;
 const productDesciptionMaxLength = 200;
 
@@ -22,7 +22,7 @@ const productDetailSchema = new mongoose.Schema({
     category: {
         type: String,
         required: [true, "A product must has a category."],
-        enum : categoryTypes
+        enum : categoryTypesEnum
     },
     description: {
         type: String,
