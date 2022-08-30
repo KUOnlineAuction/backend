@@ -41,7 +41,8 @@ const deliverInfoSchema = new mongoose.Schema({
 
 const billingInfoSchema = new mongoose.Schema({
     auctionId: {
-        type: mongoose.ObjectId,
+        type: mongoose.Schema.ObjectId,
+        ref: 'Auction',
         required: [true, "A billing info must has the auctioneer's Id."]
     },
     price: {
@@ -66,9 +67,9 @@ const billingInfoSchema = new mongoose.Schema({
     }
 })
 
-const Billing = mongoose.model('Billing', billingSchema)
+const BillingInfo = mongoose.model('BillingInfo', billingInfoSchema)
 const BillingBankAccount = mongoose.model('BillingBankAccount', billingBankAccountSchema)
 const Slip = mongoose.model('Slip', slipSchema)
 const DeliverInfo = mongoose.model('DeliverInfo', deliverInfoSchema)
 
-module.exports = {Billing, BillingBankAccount, Slip, DeliverInfo}
+module.exports = {BillingInfo, BillingBankAccount, Slip, DeliverInfo}

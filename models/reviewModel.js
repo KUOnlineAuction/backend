@@ -2,11 +2,13 @@ const mongoose = require('mongoose');
 
 const reviewSchema = new mongoose.Schema({
     reviewerId: {
-        type: mongoose.ObjectId,
+        type: mongoose.Schema.ObjectId,
+        ref: 'User',
         required: [true, "A review must has its revierer's user Id."]
     },
     auctioneerId: {
-        type: mongoose.ObjectId,
+        type: mongoose.Schema.ObjectId,
+        ref: 'User',
         required: [true, "A review must has the auctioneer user's Id."]
     },
     rating: {

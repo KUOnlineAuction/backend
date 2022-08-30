@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const validator = require('validator')
-// const validator = require('validator');
 
 // TODO: Test collecting data using objectID and in a list first to do this.
 const userSchema = new mongoose.Schema({
@@ -42,7 +41,7 @@ const userSchema = new mongoose.Schema({
         type : String
     },
     badge : [{
-        type : mongoose.ObjectId,
+        type : mongoose.Schema.ObjectId,
         ref : 'Badge'
     }],
     rating : {
@@ -51,7 +50,7 @@ const userSchema = new mongoose.Schema({
         max : 5
     },
     reviewList : [{
-        type : mongoose.ObjectId,
+        type : mongoose.Schema.ObjectId,
         ref : 'Review',
     }],
     totalAuctioned : {
@@ -65,37 +64,37 @@ const userSchema = new mongoose.Schema({
     },
     activeBiddingList : 
     [{
-        type : mongoose.ObjectId,
+        type : mongoose.Schema.ObjectId,
         ref : 'Auction'
     }],
     followingList : 
     [{
-        type : mongoose.ObjectId,
+        type : mongoose.Schema.ObjectId,
         ref : 'Auction'
     }],
     finishedBiddingList : 
     [{
-        type : mongoose.ObjectId,
+        type : mongoose.Schema.ObjectId,
         ref : 'Auction'
     }],
     activeAuctionList : 
     [{
-        type : mongoose.ObjectId,
+        type : mongoose.Schema.ObjectId,
         ref : 'Auction'
     }],
     finishedAuctionList :
     [{
-        type : mongoose.ObjectId,
+        type : mongoose.Schema.ObjectId,
         ref : 'Auction'
     }],
     billingList :a
     [{
-        type: mongoose.ObjectId,
+        type: mongoose.Schema.ObjectId,
         ref : 'BillingInfo'
     }],
     notificationList : 
     [{
-        type : mongoose.ObjectId,
+        type : mongoose.Schema.ObjectId,
         ref : 'Notification'
     }],
     userStatus : {
