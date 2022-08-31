@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 // const validator = require('validator');
 
-const categoryTypesEnum = ["Tmp"]; // please edit this
+const categoryTypesEnum = ["Home Improvement","Jewellery","Coins, Currentcy, Stamps","Watches","Fashion","Arts","Antiques & Collectables and Amulet","Electronics","Cars & Automotive","Handbags","Miscellaneous"];
 const productNameMaxLength = 30;
 const productDesciptionMaxLength = 200;
 
@@ -85,7 +85,7 @@ const auctionSchema = new mongoose.Schema({
              message: "The input bid is lower than the current bid + minimum bid step"
         }
     },
-    currentWinnerId: {
+    currentWinnerID: {
         type: mongoose.ObjectId,
         ref : "User"
     },
@@ -101,14 +101,15 @@ const auctionSchema = new mongoose.Schema({
     },
     auctionStatus: {
         type: String,
-        enum: ['Bidding', 'Waiting', 'Finished']
+        enum: ['Bidding', 'Waiting', 'Finished'],
+        default: 'Bidding'
     }
 })
 
-const Auction = mongoose.model('Auction', auctionSchema);
 const ProductDetail = mongoose.model('ProductDetail', productDetailSchema);
+const Auction = mongoose.model('Auction', auctionSchema);
+
 
 module.exports = Auction;
-module.exports = ProductDetail;
 
 // TODO: Test using subdocuments

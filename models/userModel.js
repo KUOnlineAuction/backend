@@ -87,7 +87,7 @@ const userSchema = new mongoose.Schema({
         type : mongoose.Schema.ObjectId,
         ref : 'Auction'
     }],
-    billingList :a
+    billingList :
     [{
         type: mongoose.Schema.ObjectId,
         ref : 'BillingInfo'

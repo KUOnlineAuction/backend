@@ -4,12 +4,12 @@ const mongoose = require('mongoose');
 const maxReportLength = 200;
 
 const reportSchema = new mongoose.Schema({
-    reporterId: {
+    reporterID: {
         type: mongoose.Schema.ObjectId,
         ref: 'User',
         required: [true, "A report must has its reporter's Id"]
     },
-    reportedId: {
+    reportedID: {
         type: mongoose.ObjectId,
         ref: 'User',
         required: [true, "A report must has the reported user's Id"]

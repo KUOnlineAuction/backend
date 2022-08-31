@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
 
 const reviewSchema = new mongoose.Schema({
-    reviewerId: {
+    reviewerID: {
         type: mongoose.Schema.ObjectId,
         ref: 'User',
         required: [true, "A review must has its revierer's user Id."]
     },
-    auctioneerId: {
+    auctioneerID: {
         type: mongoose.Schema.ObjectId,
         ref: 'User',
         required: [true, "A review must has the auctioneer user's Id."]
@@ -25,6 +25,6 @@ const reviewSchema = new mongoose.Schema({
     }
 })
 
-const Review = mongoose.model('Report', reviewSchema)
+const Review = mongoose.model('Review', reviewSchema)
 
 module.exports = Review
