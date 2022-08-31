@@ -8,7 +8,7 @@ const hpp = require('hpp')
 
 const AppError = require('./utils/appError')
 const globalErrorHandler = require('./controllers/errorController')
-// const tourRouter = require('./routes/TourRoutes')
+const testRouter = require('./routes/testRoutes')
 // const userRouter = require('./routes/UserRoutes')
 
 const app = express();
@@ -55,7 +55,7 @@ app.use((req,res,next)=>{
 
 // Route
 
-// app.use('/api/v1/tours', tourRouter);
+app.use('/api/test', testRouter);
 // app.use('/api/v1/users', userRouter);
 
 // Handle other invalid routes
