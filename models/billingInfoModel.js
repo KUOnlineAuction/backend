@@ -1,14 +1,19 @@
 const mongoose = require('mongoose');
 // const validator = require('validator');
 
-const shippingCompanyEnum = ["Kerry Express","Grab","Lalamove","Nim Express","Line Man","TNT Express","DHL Express","SCG Express","Flash Express","Skootar","J&T Express","Best Express","Inter Express Logistics","Ninja Van"]
+const shippingCompanyEnum = ['KEX','GRAB','LLMV','NIM','LINE','TNT','DHL','SCG','FLASH','SKT','J&T','BEST','IEL','NINJA']
 const billingInfoStatusEnum = ['waitingForPayment','waitingConfirmSlip','waitingForShipping','waitingForConfirm','waitingAdminPayment','completed']
+const backNameEnum = ['BBL','BAY','CIMBT','ICB','KBANK','KKP','KTB','LH','SCB','SCT','TISCO','UOB','TTB','GSB','CITI','GHB','BAAC','IBT','TCRB','HSBC']
 
 const billingBankAccountSchema = new mongoose.Schema({
     bankNO: {
         type: String
     },
-    name: {
+    bankName: {
+        type: String,
+        enum: backNameEnum
+    },
+    auctioneerName: {
         type: String
     }
 })
@@ -44,7 +49,7 @@ const billingInfoSchema = new mongoose.Schema({
         ref: 'Auction',
         required: [true, "A billing info must has the auctioneer's Id."]
     },
-    price: {
+    winningPrice: {
         type: Number,
         required: [true, "A billing info must has its price."]
     },

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const validator = require('validator')
 const bcrypt = require('bcrypt')
+const crypto = require('crypto')
 
 const userSchema = new mongoose.Schema({
     displayName : {
@@ -84,16 +85,18 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.ObjectId,
         ref : 'BillingInfo'
     }],
-    notificationList : 
-    [{
-        type : mongoose.Schema.ObjectId,
-        ref : 'Notification'
-    }],
+    // notificationList : 
+    // [{
+    //     type : mongoose.Schema.ObjectId,
+    //     ref : 'Notification'
+    // }],
     userStatus : {
         type : String,
         enum : ['notConfirm', 'active', 'blacklist','admin'],
         default : 'notConfirm'
-    }
+    },
+    passwordResetToken: String,
+    passwordResetExpires: Date,
 })
 
 userSchema.pre('save', async function(next){
@@ -118,6 +121,19 @@ userSchema.methods.changedPasswordAfter = function (JWTTimeStamp){
         return JWTTimeStamp < changedTimestamp
     }
     return false
+}
+
+userSchema.methods.createPasswordResetToken = function() {
+    // 1) Create a random token
+    const resetToken = crypto.randomBytes(32).toString('hex')
+
+    // 2) store hashed password reset token and expire time
+    this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex')
+    // console.log({resetToken}, this.passwordResetToken);
+    this.passwordResetExpires = Date.now() + 10*60*1000
+
+    // returns original token BEFORE hashing into the database
+    return resetToken
 }
 
 const User = mongoose.model('User', userSchema)

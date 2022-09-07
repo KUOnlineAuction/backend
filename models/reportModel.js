@@ -17,7 +17,6 @@ const reportSchema = new mongoose.Schema({
     description: {
         type: String,
         maxlength: maxReportLength
-        // Can a report be empty?
     },
     reportedTime: {
         type: Date,

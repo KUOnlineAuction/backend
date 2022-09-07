@@ -16,8 +16,7 @@ const reviewSchema = new mongoose.Schema({
         required: [true, "A review must has a rating."]
     },
     comment: {
-        type: String,
-        requried: [true, "A report must record its time."] // Is it required or optional?
+        type: String
     },
     productName: {
         type: String,
