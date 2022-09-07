@@ -5,10 +5,6 @@ const badgeSchema = new mongoose.Schema({
     badgeName: {
         type: String,
         required: [true, 'A badge must has a name.']
-    },
-    badgePicture: {
-        type: String,
-        required: [true, 'A badge must has a picture.']
     }
 })
 

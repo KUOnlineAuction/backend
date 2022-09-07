@@ -1,12 +1,14 @@
 const mongoose = require('mongoose');
 
 const reviewSchema = new mongoose.Schema({
-    reviewerId: {
-        type: mongoose.ObjectId,
+    reviewerID: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User',
         required: [true, "A review must has its revierer's user Id."]
     },
-    auctioneerId: {
-        type: mongoose.ObjectId,
+    auctioneerID: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User',
         required: [true, "A review must has the auctioneer user's Id."]
     },
     rating: {
@@ -14,8 +16,7 @@ const reviewSchema = new mongoose.Schema({
         required: [true, "A review must has a rating."]
     },
     comment: {
-        type: String,
-        requried: [true, "A report must record its time."] // Is it required or optional?
+        type: String
     },
     productName: {
         type: String,
@@ -23,6 +24,6 @@ const reviewSchema = new mongoose.Schema({
     }
 })
 
-const Review = mongoose.model('Report', reviewSchema)
+const Review = mongoose.model('Review', reviewSchema)
 
 module.exports = Review

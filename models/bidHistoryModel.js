@@ -3,11 +3,13 @@ const mongoose = require('mongoose');
 
 const bidHistorySchema = new mongoose.Schema({
     bidderID: {
-        type: mongoose.ObjectId,
+        type: mongoose.Schema.ObjectId,
+        ref: 'User',
         required: [true, "A bid must has the bidder ID."]
     },
     auctionID: {
-        type: mongoose.ObjectId,
+        type: mongoose.Schema.ObjectId,
+        ref: 'User',
         required: [true, "A bid must has the auctioneer ID."]
     },
     biddingPrice: {

@@ -1,23 +1,27 @@
 const mongoose = require('mongoose');
 // const validator = require('validator');
 
-// TODO: Talk about the notification changes to the data model first then implement
+const maxReportLength = 200;
+
 const reportSchema = new mongoose.Schema({
-    reporterId: {
-        type: mongoose.ObjectId,
+    reporterID: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User',
         required: [true, "A report must has its reporter's Id"]
     },
-    reportedId: {
-        type: mongoose.ObjectId,
+    reportedID: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User',
         required: [true, "A report must has the reported user's Id"]
     },
     description: {
-        type: String
-        // Can a report be empty?
+        type: String,
+        maxlength: maxReportLength
     },
     reportedTime: {
         type: Date,
-        requried: [true, "A report must record its time"] // Is it required? But probably doesn't matter
+        default: Date.now(),
+        requried: [true, "A report must record its time"]
     }
 })
 
