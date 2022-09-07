@@ -6,6 +6,7 @@ const router = express.Router();
 
 // Authentication related stuff
 router.post('/signup', authController.signup) //done
+router.post('/signupnoverify', authController.signupnoverify) //done
 router.post('/validateUser/:id', authController.validateUser) //done
 
 router.post('/signin', authController.login) //done

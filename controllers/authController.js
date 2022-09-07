@@ -54,6 +54,22 @@ exports.signup = catchAsync(async (req, res, nex) => {
     })
 })
 
+exports.signupnoverify= catchAsync(async (req, res, nex) => {
+    if(process.env.NODE_ENV !== 'development'){
+        return next(new AppError('You are not authorized to access this.', 401))
+    }
+    // 1) Make the user status = 'notConfirm' first
+    req.body.userStatus = 'active'
+
+    // 2) Create new user in database
+    await User.create(req.body)
+
+    // SKIP EMAIL VERIFICATION
+    res.status(201).json({
+        "status": "success"
+    })
+})
+
 exports.login = catchAsync(async(req, res, next) => {
     const { email, password } = req.body
 
@@ -120,7 +136,7 @@ exports.resetPassword = catchAsync(async(req, res, next) => {
         return next(new AppError('Token is invalid or expired', 400))
     }
 
-    user.password = req.body.password
+    user.password = req.body.newPassword
     user.passwordResetToken = undefined
     user.passwordResetExpires = undefined
     await user.save()
