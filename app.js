@@ -5,11 +5,12 @@ const helmet = require('helmet')
 const mongoSanitize = require('express-mongo-sanitize')
 const xss = require('xss-clean')
 const hpp = require('hpp')
+const cookieParser = require('cookie-parser')
 
 const AppError = require('./utils/appError')
 const globalErrorHandler = require('./controllers/errorController')
-// const tourRouter = require('./routes/TourRoutes')
-// const userRouter = require('./routes/UserRoutes')
+const testRouter = require('./routes/testRoutes')
+const userRouter = require('./routes/userRoutes')
 
 const app = express();
 
@@ -55,8 +56,8 @@ app.use((req,res,next)=>{
 
 // Route
 
-// app.use('/api/v1/tours', tourRouter);
-// app.use('/api/v1/users', userRouter);
+// app.use('/api/test', testRouter);
+// app.use('/api/user', userRouter);
 
 // Handle other invalid routes
 app.all('*', (req, res, next)=> {

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const validator = require('validator')
+const bcrypt = require('bcrypt')
 
-// TODO: Test collecting data using objectID and in a list first to do this.
 const userSchema = new mongoose.Schema({
     displayName : {
         type : String,
@@ -22,20 +22,13 @@ const userSchema = new mongoose.Schema({
     },
     password : {
         type : String,
-        required : [true, 'User'],
+        required : [true, 'User must have a password'],
         minlength : 10,
         select : false
     },
-    passwordConfirm : {
-        type : String,
-        required : [true, 'Please confirm your password']
-    },
-    bankAccountNumber : {
-        type : String
-    },
     profilePicture : {
         type : String,
-        default : 'default.jpg'
+        default : 'default.jpg' // Fixed to the location of default image in final product
     },
     accountDescription : {
         type : String
@@ -57,7 +50,6 @@ const userSchema = new mongoose.Schema({
         type : Number,
         default : 0
     },
-    
     sucessAuctioned : {
         type : Number,
         default : 0
@@ -99,10 +91,34 @@ const userSchema = new mongoose.Schema({
     }],
     userStatus : {
         type : String,
-        enum : ['notConfirm', 'active', 'blackList'],
+        enum : ['notConfirm', 'active', 'blacklist','admin'],
         default : 'notConfirm'
     }
 })
+
+userSchema.pre('save', async function(next){
+    // console.log(this._id);
+    if(!this.isModified('password')) return next;
+    this.password = await bcrypt.hash(this.password, 12)
+    next()
+})
+
+// userSchema.post('save', async function(){
+//     console.log(this._id);
+// })
+
+userSchema.methods.correctPassword = async function(candidatePassword, userPassword) {
+    return await bcrypt.compare(candidatePassword, userPassword)
+}
+
+userSchema.methods.changedPasswordAfter = function (JWTTimeStamp){
+    // false = no error
+    if(this.passwordChangedAt) {
+        const changedTimestamp = parseInt(this.passwordChangedAt.getTime() / 1000, 10)
+        return JWTTimeStamp < changedTimestamp
+    }
+    return false
+}
 
 const User = mongoose.model('User', userSchema)
 

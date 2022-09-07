@@ -10,7 +10,7 @@ const reportSchema = new mongoose.Schema({
         required: [true, "A report must has its reporter's Id"]
     },
     reportedID: {
-        type: mongoose.ObjectId,
+        type: mongoose.Schema.ObjectId,
         ref: 'User',
         required: [true, "A report must has the reported user's Id"]
     },

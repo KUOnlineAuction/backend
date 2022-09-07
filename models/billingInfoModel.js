@@ -1,9 +1,8 @@
 const mongoose = require('mongoose');
 // const validator = require('validator');
 
-// TODO: Add shipping company names that we will let the user choose
 const shippingCompanyEnum = ["Kerry Express","Grab","Lalamove","Nim Express","Line Man","TNT Express","DHL Express","SCG Express","Flash Express","Skootar","J&T Express","Best Express","Inter Express Logistics","Ninja Van"]
-const shippingStatusEnum = ['WaitPayment','WaitConfirmSlip ','waitShipping','waitReceive','finished' ]
+const billingInfoStatusEnum = ['waitingForPayment','waitingConfirmSlip','waitingForShipping','waitingForConfirm','waitingAdminPayment','completed']
 
 const billingBankAccountSchema = new mongoose.Schema({
     bankNO: {
@@ -49,7 +48,7 @@ const billingInfoSchema = new mongoose.Schema({
         type: Number,
         required: [true, "A billing info must has its price."]
     },
-    recieverName: {
+    receiverName: {
         type: String,
         required: [true, "A billing info must has its reciever's name."]
     },
@@ -62,8 +61,8 @@ const billingInfoSchema = new mongoose.Schema({
     deliverInfo: deliverInfoSchema,
     billingInfoStatus: {
         type: String,
-        enum: shippingStatusEnum,
-        default: 'WaitPayment'
+        enum: billingInfoStatusEnum,
+        default: 'waitingForPayment'
     }
 })
 

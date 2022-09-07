@@ -29,7 +29,7 @@ const productDetailSchema = new mongoose.Schema({
         required: [true, "A product must has a description."],
         maxlength: [productDesciptionMaxLength, `The description cannot exceed ${productDesciptionMaxLength}.`]
     },
-    picture: {
+    productPicture: {
         type: [String],
         required: [true, "A product must have atleast 1 picture."]
     }
@@ -51,10 +51,11 @@ const auctionSchema = new mongoose.Schema({
         required: [true, "An auction must has a stating price."],
         min : [0, "The starting price must not be negative."],
     },
-    minimumBidPrice: {
+    bidStep: {
         type: Number,
         min : [1, "The minimum bid price must not be more than 0."]
         // If undefined : use default method to calculate minumum bid price
+        // คนทำส่วน Auction คุยแก้กันเองได้เลยว่าจะเก็บ 0 หรือ NULL เป็น ไม่มี minimum bid price
     },
     expectedPrice: {
         type: Number,
@@ -79,30 +80,40 @@ const auctionSchema = new mongoose.Schema({
         type: Number,
         validate: {
             validator: function(el){
-                const bidstep = this.minimumBidPrice | defaultMinimumBid(this.currentPrice | this.startingPrice)
+                // if there was no bid yet
+                if(!this.currentPrice){
+                    return el >= currentPrice
+                }
+                // if there was already a bid
+                const bidstep = this.minimumBidPrice | defaultMinimumBid(this.currentPrice)
                 return el >= (this.currentPrice + bidstep)
              },
              message: "The input bid is lower than the current bid + minimum bid step"
         }
+        // ยังไม่ได่ตรวจ bug สำหรับ validator นี้นะ เช็คด้วย
     },
     currentWinnerID: {
-        type: mongoose.ObjectId,
+        type: mongoose.Schema.ObjectId,
         ref : "User"
     },
     bidHistory: {
-        type: [mongoose.ObjectId],
+        type: [mongoose.Schema.ObjectId],
         ref : "BidHistory",
         default: []
     },
-    // Add Date.now() + 6 month as default
+    // Date.now() + 6 month as default
     autoDestroy: {
         type: Date,
         default : Date.now() + 6 * 30 * 24 * 60 * 60 * 1000
     },
     auctionStatus: {
         type: String,
-        enum: ['Bidding', 'Waiting', 'Finished'],
+        enum: ['bidding', 'waiting', 'finished'],
         default: 'Bidding'
+    },
+    billingHistoryID: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'BillingInfo'
     }
 })
 
@@ -111,5 +122,3 @@ const Auction = mongoose.model('Auction', auctionSchema);
 
 
 module.exports = Auction;
-
-// TODO: Test using subdocuments
