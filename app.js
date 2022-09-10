@@ -9,7 +9,7 @@ const cookieParser = require('cookie-parser')
 
 const AppError = require('./utils/appError')
 const globalErrorHandler = require('./controllers/errorController')
-const testRouter = require('./routes/testRoutes')
+// const testRouter = require('./routes/testRoutes')
 const userRouter = require('./routes/userRoutes')
 
 const app = express();
@@ -48,6 +48,9 @@ app.use(hpp({
 // Serving static files
 app.use(express.static(`${__dirname}/public`))
 
+// read cookies
+app.use(cookieParser())
+
 // Test middleware
 app.use((req,res,next)=>{
     req.requestTime = new Date().toISOString();
@@ -57,7 +60,7 @@ app.use((req,res,next)=>{
 // Route
 
 // app.use('/api/test', testRouter);
-// app.use('/api/user', userRouter);
+app.use('/api/user', userRouter);
 
 // Handle other invalid routes
 app.all('*', (req, res, next)=> {

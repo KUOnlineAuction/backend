@@ -1,0 +1,184 @@
+const { promisify } = require('util')
+const User = require('./../models/userModel')
+const catchAsync = require('./../utils/catchAsync')
+const jwt = require('jsonwebtoken')
+const AppError = require("./../utils/appError")
+const Email = require("./../utils/email")
+const crypto = require('crypto')
+
+// const sendEmail = require("./../utils/email")
+// const crypto = require('crypto')
+
+const signToken = id => {
+    return jwt.sign({ id }, process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_EXPIRES_IN
+    })
+}
+
+const createAndSendToken = (user, statusCode, res) => {
+    const token = signToken(user._id)
+    const cookieOption = {
+        expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000),
+        httpOnly: true
+    }
+
+    if(process.env.NODE_ENV === 'production') cookieOption.secure = true
+
+    res.cookie('jwt', token, cookieOption)
+
+    user.password = undefined
+    user.passwordConfirm = undefined
+
+    res.status(statusCode).json({
+        status: 'success',
+        token,
+        data: {
+            user
+        }
+    })
+}
+
+exports.signup = catchAsync(async (req, res, nex) => {
+    // 1) Make the user status = 'notConfirm' first
+    req.body.userStatus = 'notConfirm'
+
+    // 2) Create new user in database
+    const newUser = await User.create(req.body)
+
+    // 3) Send a verification email
+    const url = `${req.protocol}://${req.get('host')}/api/user/validateUser/${newUser._id}` // MUST CHANGE TO VERIFICATION EMAIL
+    await new Email(newUser,url).sendConfirmEmail()
+
+    res.status(201).json({
+        "status": "success"
+    })
+})
+
+exports.signupnoverify= catchAsync(async (req, res, nex) => {
+    if(process.env.NODE_ENV !== 'development'){
+        return next(new AppError('You are not authorized to access this.', 401))
+    }
+    // 1) Make the user status = 'notConfirm' first
+    req.body.userStatus = 'active'
+
+    // 2) Create new user in database
+    await User.create(req.body)
+
+    // SKIP EMAIL VERIFICATION
+    res.status(201).json({
+        "status": "success"
+    })
+})
+
+exports.login = catchAsync(async(req, res, next) => {
+    const { email, password } = req.body
+
+    // 1) check if emal password exists
+    if(!email || !password){
+        return next(new AppError('Please provide email and password', 400))
+    }
+    // 2) check if user exist && password is correct
+    const user = await User.findOne({email}).select('+password')
+
+    if(!user || !(await user.correctPassword(password, user.password))){
+        return next(new AppError('Incorrect email or password', 401))
+    }
+
+    // 3) if everything is ok, send the web token to the client
+    createAndSendToken(user, 200, res)
+})
+
+exports.signout = catchAsync(async(req, res, next) => {
+    res.clearCookie("jwt")
+    res.status(201).json({
+        "status" : "success",
+    })
+})
+
+exports.validateUser = catchAsync(async(req, res, next) => {
+    await User.findByIdAndUpdate(req.params.id, {
+        userStatus : 'active'
+    })
+    res.status(201).json({
+        "status" : "success"
+    })
+})
+
+exports.forgotPassword = catchAsync(async (req, res, next) => {
+    // 1) Get user based on POSTed email
+    const user = await User.findOne({ email: req.body.email })
+    if(!user) {
+        return next( new AppError('There is no user with this email address', 404));
+    }
+
+    // 2) Generate the random reset token
+    const resetToken = crypto.randomBytes(32).toString('hex')
+    user.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex')
+    user.passwordResetExpires = Date.now() + 10*60*1000
+    await user.save({ validateBeforeSave: false});
+
+    // 3) Send it as an email
+    const resetURL = `${req.protocol}://${req.get('host')}/api/user/reset-password?id=${resetToken}`
+
+    await new Email(user,resetURL).sendPasswordReset()
+    res.status(200).json({
+        "status":"success"
+    })
+})
+
+exports.resetPassword = catchAsync(async(req, res, next) => {
+    // 1) get user based on the token
+    const hashedToken = crypto.createHash('sha256').update(req.query.id).digest('hex')
+    const user = await User.findOne({passwordResetToken: hashedToken, passwordResetExpires: {$gt: Date.now()}} )
+
+    // 2) if token has not expired, and there is a user, set the new password
+    if (!user){
+        return next(new AppError('Token is invalid or expired', 400))
+    }
+
+    user.password = req.body.newPassword
+    user.passwordResetToken = undefined
+    user.passwordResetExpires = undefined
+    await user.save()
+
+    // 3) log the user in, send JWT
+    createAndSendToken(user, 200, res)
+})
+
+
+// must login to access this API
+exports.protect = catchAsync(async (req, res, next) => {
+    // 1) Get the token and check if it's exists
+    if (!req.cookies.jwt){
+        return next(new AppError('You are not logged in, please log in to gain access.',401))
+    }
+
+    // 2) Validate the token
+    const decoded = await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
+    // Handled errors with errorController for JsonWebTokenError and TokenExpirefError
+
+    // 3) Check if user still exists
+    const freshUser = await User.findById(decoded.id)
+    if(!freshUser){
+        return next(new AppError('The user belonging to the token no longer exists.'))
+    }
+
+    // 4) Check if user changed password after the token was issued
+    if (freshUser.changedPasswordAfter(decoded.iat)){ // iat = token issued at
+        return next(new AppError('User recently changed the password. Please log in again.'))
+    }
+
+    // Grant Access to protected route
+    req.user = freshUser;
+    next()
+})
+
+// Input list of user accessable user
+exports.restrictTo = (...roles) => {
+    return (req, res, next) => {
+        if(!roles.includes(req.user.userStatus)){
+            return next(new AppError('You do not have permission to perform this action'), 403)
+        }
+        next()
+    }
+}
