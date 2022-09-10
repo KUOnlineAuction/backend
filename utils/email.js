@@ -6,7 +6,7 @@ module.exports = class Email {
     this.to = user.email;
     this.name = user.displayName;
     this.url = url;
-    this.from = `Phoonum Saelao <phoonum1@gmail.com>`;
+    this.from = `Name <${process.env.EMAIL_FROM}>`;
   }
 
   newTransport() {
