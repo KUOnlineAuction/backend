@@ -134,6 +134,7 @@ exports.myorder = catchAsync (async (req, res, next) =>{
 
     for( let el of auctions){
         el.auctionID = el._id
+        // comment next line if picture hasn't been implemented
         el.productPicture = await getPicture('auctionPicture', el.productDetail.productPicture[0])
         el.productName = el.productDetail.productName
         el.lastBid = el.currentPrice
@@ -147,10 +148,10 @@ exports.myorder = catchAsync (async (req, res, next) =>{
         if(req.query.list === 'mybid' && el.auctionStatus === 'bidding'){
             let bidQueryString = []
             for (let bid of el.bidHistory){
-                bidQueryString.append(mongoose.Types.ObjectId(bid))
+                bidQueryString.push(mongoose.Types.ObjectId(bid))
             }
-            const userLastBid = await BidHistory.find({'_id': { $in : bidQueryString}, 'bidderID' : user._id}).sort({'biddingPrice': -1}).limit(1)
-            console.log(userLastBid)
+            const userLastBid = await BidHistory.find({_id: { $in : bidQueryString}, bidderID : user._id}).sort({'biddingPrice': -1}).limit(1)
+            el.userBidPrice = userLastBid[0].biddingPrice
         }
 
         const excludedField = ["_id","productDetail","currentPrice","billingHistoryID","endDate","bidHistory"]
@@ -213,6 +214,7 @@ exports.aucProfile = catchAsync (async (req, res, next) =>{
     }).select('productDetail endDate currentPrice').sort('endDate').lean()
     
     for(let el of auctions){
+        // comment next line if picture hasn't been implemented
         el.productPicture = await getPicture('auctionPicture', el.productDetail.productPicture[0])
         el.productName = el.productDetail.productName
         el.productDetail._id = undefined
