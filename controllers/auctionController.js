@@ -432,6 +432,7 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
 
     // Please come and fixed this in the future
     if (index === bidHistory.length - 1 || bidHistory.length === 0) {
+      console.log("fuck");
       res.status(200).json({
         status: "success",
         bidHistory: formatBidHistory,
@@ -439,10 +440,12 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
     }
   });
   // If there is no bid History
-  res.status(200).json({
-    status: "success",
-    bidHistory: formatBidHistory,
-  });
+  if (bidHistory.length === 0) {
+    res.status(200).json({
+      status: "success",
+      bidHistory: formatBidHistory,
+    });
+  }
 });
 
 // Refresh (Finished)
