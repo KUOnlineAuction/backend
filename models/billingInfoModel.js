@@ -76,4 +76,4 @@ const BillingBankAccount = mongoose.model('BillingBankAccount', billingBankAccou
 const Slip = mongoose.model('Slip', slipSchema)
 const DeliverInfo = mongoose.model('DeliverInfo', deliverInfoSchema)
 
-module.exports = {BillingInfo, BillingBankAccount, Slip, DeliverInfo}
+module.exports = BillingInfo

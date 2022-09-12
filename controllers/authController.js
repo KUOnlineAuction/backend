@@ -6,9 +6,6 @@ const AppError = require("./../utils/appError")
 const Email = require("./../utils/email")
 const crypto = require('crypto')
 
-// const sendEmail = require("./../utils/email")
-// const crypto = require('crypto')
-
 const signToken = id => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRES_IN
@@ -38,17 +35,31 @@ const createAndSendToken = (user, statusCode, res) => {
     })
 }
 
-exports.signup = catchAsync(async (req, res, nex) => {
-    // 1) Make the user status = 'notConfirm' first
-    req.body.userStatus = 'notConfirm'
+exports.signup = catchAsync(async (req, res, next) => {
+    // 1) Clean the data to upload to the database
+    const user = {
+        displayName: req.body.displayName,
+        email: req.body.email,
+        password: req.body.password
+    }
+
+    const test = await User.findOne({email: user.email})
+    if(test){
+        return next(new AppError("The email haas already been used",400))
+    }
 
     // 2) Create new user in database
-    const newUser = await User.create(req.body)
+    const newUser = await User.create(user)
 
-    // 3) Send a verification email
+    // 3) Try sending a verification email
+    try{
     const url = `${req.protocol}://${req.get('host')}/api/user/validateUser/${newUser._id}` // MUST CHANGE TO VERIFICATION EMAIL
     await new Email(newUser,url).sendConfirmEmail()
-
+    } catch (err) {
+        await User.deleteOne(newUser)
+        return next(new AppError("Internal server error",500))
+    }
+    
     res.status(201).json({
         "status": "success"
     })
@@ -77,8 +88,17 @@ exports.login = catchAsync(async(req, res, next) => {
     if(!email || !password){
         return next(new AppError('Please provide email and password', 400))
     }
-    // 2) check if user exist && password is correct
+    // 2) check if user exist && password is correct / and the user is verified or blacklisted
+
     const user = await User.findOne({email}).select('+password')
+
+    if(user.userStatus === 'notConfirm'){
+        return next(new AppError("The user hasn't verifed the email yet.",401))
+    }
+
+    if(user.userStatus === 'blacklist'){
+        return next(new AppError("This account has been blacklisted.",401))
+    }
 
     if(!user || !(await user.correctPassword(password, user.password))){
         return next(new AppError('Incorrect email or password', 401))

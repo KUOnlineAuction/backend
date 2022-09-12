@@ -17,9 +17,10 @@ router.post('/reset-password', authController.resetPassword) //done
 
 
 // User related stuff
-router.get('/profile/:id', userController.profile) //half way
-// router.get('/edit', userController.) // hasnt started
-router.get('/test', userController.test)
+router.get('/myprofile',authController.protect, userController.myProfile) // done
+router.patch('/edit', authController.protect , userController.uploadUserImage, userController.resizeUserImage ,userController.editProfle) // done
+router.get('/myorder', authController.protect,userController.myorder) // done
+router.get('/profile/:id', userController.aucProfile) // done
 
 
 module.exports = router
