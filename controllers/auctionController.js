@@ -48,7 +48,6 @@ const censoredName = (name) => {
 };
 
 const paginate = (array, page_size, page_number) => {
-  console.log("fuck");
   // human-readable page numbers usually start with 1, so we reduce 1 in the first argument
   return array.slice((page_number - 1) * page_size, page_number * page_size);
 };
@@ -123,7 +122,6 @@ exports.getSearch = catchAsync(async (req, res, next) => {
 
   //1) Search by name or category
   let auction;
-  console.log(name);
   if (name) {
     // auction = await Auction.find({
     //   "productDetail.productName": { $regex: `/^${name}/` },
@@ -272,7 +270,6 @@ exports.postFollow = catchAsync(async (req, res, next) => {
     auctionStatus: "bidding",
   });
 
-  console.log(auction);
   if (!auction) {
     return next(new AppError("Auction not found"), 400);
   }
@@ -421,11 +418,9 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
   if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
     // auction enter 5 minute system
     bidHistory = bidHistory.filter((value, index, arr) => {
-      console.log("Fucl");
       return auction.endDate - value.biddingDate > 5 * 60 * 1000;
     });
   }
-  console.log(`Help ${bidHistory.length}`);
   const formatBidHistory = [];
   bidHistory.forEach(async (value, index, arr) => {
     const user = await User.findById(value.bidderID);
@@ -434,8 +429,6 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
       biddingDate: new Date(value.biddingDate).valueOf(),
       biddingPrice: value.biddingPrice,
     });
-    console.log("Hello");
-    console.log(bidHistory.length);
 
     // Please come and fixed this in the future
     if (index === bidHistory.length - 1 || bidHistory.length === 0) {
@@ -445,9 +438,6 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
       });
     }
   });
-  // console.log(fuck);
-
-  // // console.log(bidHistory);
   // If there is no bid History
   res.status(200).json({
     status: "success",
@@ -509,9 +499,6 @@ exports.postBid = catchAsync(async (req, res, next) => {
     );
   }
   // Expected Price
-  console.log(
-    auction.expectedPrice && auction.expectedPrice <= auction.currentPrice
-  );
   const updatedAuction = await Auction.updateOne(
     { _id: req.params.auction_id },
     {
