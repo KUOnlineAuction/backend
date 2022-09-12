@@ -12,11 +12,11 @@ exports.uploadUserPh;
 //Auction Summary List (Not Finished)
 router.get("/auction-list", auctionController.getSummaryList);
 
-// //Search
-// router.get("/search", auctionController.getSearch);
+// //Search (Picture not implement)
+router.get("/search", auctionController.getSearch);
 
 //Follow (Finished)
-router  
+router
   .get(
     "/:auction_id/follow",
     authController.protect,
@@ -26,7 +26,7 @@ router
     "/:auction_id/follow",
     authController.protect,
     auctionController.postFollow
-  ); 
+  );
 
 //Upload item (Picture not implement)
 router.post("/upload", authController.protect, auctionController.postAuction); //Nearly Finish
@@ -38,8 +38,8 @@ router.get(
   auctionController.getAuctionDetail
 );
 
-//Bid Histroy 
-// router.get("/:auction_id/bid-history", auctionController.getBidHistory);
+//Bid Histroy
+router.get("/:auction_id/bid-history", auctionController.getBidHistory);
 
 //Refresh (Finished)
 router.get("/:auction_id/refresh", auctionController.refresh); //Finished
