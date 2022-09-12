@@ -149,7 +149,7 @@ exports.myorder = catchAsync (async (req, res, next) =>{
             for (let bid of el.bidHistory){
                 bidQueryString.append(mongoose.Types.ObjectId(bid))
             }
-            const userLastBid = await BidHistory.find({'_id': { $in : bidQueryString}}).find({'bidderID' : user._id}).sort({'biddingPrice': -1}).limit(1)
+            const userLastBid = await BidHistory.find({'_id': { $in : bidQueryString}, 'bidderID' : user._id}).sort({'biddingPrice': -1}).limit(1)
             console.log(userLastBid)
         }
 
