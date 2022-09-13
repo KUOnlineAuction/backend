@@ -12,6 +12,7 @@ const globalErrorHandler = require("./controllers/errorController");
 // const testRouter = require('./routes/testRoutes')
 const userRouter = require("./routes/userRoutes");
 const auctionRouter = require("./routes/auctionRoutes");
+const reportRouter = require("./routes/reportRoutes");
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.use(express.static(`${__dirname}/public`));
 // app.use('/api/test', testRouter);
 app.use("/api/user", userRouter);
 app.use("/api/auction", auctionRouter);
+app.use("/api/report", reportRouter);
 
 // Handle other invalid routes
 app.all("*", (req, res, next) => {

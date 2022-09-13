@@ -69,9 +69,13 @@ exports.uploadProductPicture = upload.single("photo");
 
 exports.getSummaryList = catchAsync(async (req, res, next) => {
   //1. Get UserId
-  const decoded = req.cookies
+  let decoded = req.cookies.jwt
     ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
     : undefined;
+
+  if (!decoded) {
+    decoded = { id: undefined };
+  }
 
   //2 Qurey Handler
   let filter = req.query.filter;
@@ -187,9 +191,13 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
 
 exports.getSearch = catchAsync(async (req, res, next) => {
   // 1) Get current user ID
-  const decoded = req.cookies
+  let decoded = req.cookies.jwt
     ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
     : undefined;
+
+  if (!decoded) {
+    decoded = { id: undefined };
+  }
 
   const page = req.query.page ? req.query.page : 1;
   const sort = req.query.sort;
@@ -468,9 +476,13 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
 exports.getBidHistory = catchAsync(async (req, res, next) => {
   // 1) Get current user ID
 
-  const decoded = req.cookies
+  let decoded = req.cookies.jwt
     ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
     : undefined;
+
+  if (!decoded) {
+    decoded = { id: undefined };
+  }
 
   const auction_id = req.params.auction_id;
   const auction = await Auction.findById(auction_id)
