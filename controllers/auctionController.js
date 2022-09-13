@@ -91,15 +91,11 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     const auctionIDs = Array.from(bidHistory, (value) =>
       String(value.auctionID)
     );
-    console.log(auctionIDs);
     const distinctAuctionIDs = auctionIDs.filter(
       (v, i, a) => a.indexOf(v) === i
     );
-    console.log(distinctAuctionIDs);
 
     auction = await Auction.find({ _id: { $in: distinctAuctionIDs } });
-
-    console.log(auction);
 
     auction.forEach((value) => {
       let tempVal = {
@@ -132,7 +128,6 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
       };
       formatedAuction.push(value);
     });
-    console.log(auction);
   } else if (filter === "popular") {
     // Serach ตามจำนวน bidder
     auction = await Auction.find().populate({ path: "bidHistory" });
@@ -183,8 +178,6 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     });
     formatedAuction = auction;
   }
-
-  console.log("Before success");
 
   res.status(200).json({
     stauts: "success",
@@ -293,8 +286,6 @@ exports.getSearch = catchAsync(async (req, res, next) => {
     delete value._id;
     delete value.currentWinnerID;
   });
-
-  console.log(paginateAuction);
 
   let totalPage = Math.floor(auction.length / 35) + 1;
 
@@ -611,8 +602,6 @@ exports.postBid = catchAsync(async (req, res, next) => {
   };
 
   const newBidHistory = await BidHistory.create(bidHistory);
-  console.log(newBidHistory);
-
   const addBidHistory = await Auction.updateOne(
     { _id: req.params.auction_id },
     { $push: { bidHistory: newBidHistory._id } }
