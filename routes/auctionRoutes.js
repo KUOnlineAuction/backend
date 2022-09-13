@@ -5,7 +5,6 @@ const auctionController = require("./../controllers/auctionController");
 
 const router = express.Router();
 
-exports.uploadUserPh;
 
 //Router
 
