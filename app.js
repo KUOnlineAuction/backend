@@ -66,6 +66,7 @@ app.use(express.static(`${__dirname}/public`));
 // app.use('/api/test', testRouter);
 app.use("/api/user", userRouter);
 app.use("/api/auction", auctionRouter);
+app.use("/api/report", this.reportRoute);
 
 // Handle other invalid routes
 app.all("*", (req, res, next) => {
