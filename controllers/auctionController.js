@@ -488,6 +488,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
         : auction.currentPrice,
 
       myLastBid: bidHistory[0] ? bidHistory[0].biddingPrice : 0,
+      isAuctioneer: decoded.id === String(auction.auctioneerID),
     },
   });
 });
