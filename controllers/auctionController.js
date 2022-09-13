@@ -466,7 +466,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
       },
       auctioneerID: auction.auctioneerID,
       bidStep: auction.bidStep || defaultMinimumBid(auction.currentPrice),
-      endDate: auction.endDate,
+      endDate: String(new Date(auction.endDate).getTime()),
       currentPrice: !auction.currentPrice //if auction did not have bidder send startPrice instead currentPrice
         ? auction.startingPrice
         : auction.currentPrice,
