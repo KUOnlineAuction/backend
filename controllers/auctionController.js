@@ -451,6 +451,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
   }
 
   const auction = await Auction.findById(auctionId);
+  console.log(auction.bidStep);
 
   if (!auction) {
     return next(new AppError("Auction not found"));
@@ -464,7 +465,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
         productPicture: auction.productDetail.productPicture,
       },
       auctioneerID: auction.auctioneerID,
-      bidStep: auction.bidStep,
+      bidStep: auction.bidStep || defaultMinimumBid(auction.currentPrice),
       endDate: auction.endDate,
       currentPrice: !auction.currentPrice //if auction did not have bidder send startPrice instead currentPrice
         ? auction.startingPrice
