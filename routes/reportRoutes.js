@@ -6,6 +6,6 @@ const router = express.Router();
 
 //Router
 
-router.post("/", reportController.postReport);
+router.post("/", authController.protect, reportController.postReport);
 
 module.exports = router;
