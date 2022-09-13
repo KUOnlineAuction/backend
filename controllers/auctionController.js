@@ -445,16 +445,33 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 });
 
 exports.getAuctionDetail = catchAsync(async (req, res, next) => {
+  //1) Get UserID
+  let decoded = req.cookies.jwt
+    ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
+    : undefined;
+
+  if (!decoded) {
+    decoded = { id: undefined };
+  }
   const auctionId = req.params.auction_id;
   if (!auctionId) {
     return next(new AppError("Required auction_id query"), 400);
   }
 
   const auction = await Auction.findById(auctionId);
+  console.log(auction.bidStep);
 
   if (!auction) {
     return next(new AppError("Auction not found"));
   }
+
+  // Get myLastBid
+  const bidHistory = await BidHistory.find({
+    auctionID: auctionId,
+    bidderID: decoded.id,
+  }).sort({ biddingDate: -1 });
+
+  console.log(bidHistory);
   res.status(200).json({
     status: "success",
     data: {
@@ -464,11 +481,14 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
         productPicture: auction.productDetail.productPicture,
       },
       auctioneerID: auction.auctioneerID,
-      bidStep: auction.bidStep,
-      endDate: auction.endDate,
+      bidStep: auction.bidStep || defaultMinimumBid(auction.currentPrice),
+      endDate: String(new Date(auction.endDate).getTime()),
       currentPrice: !auction.currentPrice //if auction did not have bidder send startPrice instead currentPrice
         ? auction.startingPrice
         : auction.currentPrice,
+
+      myLastBid: bidHistory[0] ? bidHistory[0].biddingPrice : 0,
+      isAuctioneer: decoded.id === String(auction.auctioneerID),
     },
   });
 });
