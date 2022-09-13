@@ -9,6 +9,7 @@ const AppError = require("./../utils/appError");
 const { promisify } = require("util");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
+const { verify } = require("crypto");
 
 //Define Multer
 const multerStorage = multer.diskStorage({
@@ -68,15 +69,8 @@ exports.uploadProductPicture = upload.single("photo");
 
 exports.getSummaryList = catchAsync(async (req, res, next) => {
   //1. Get UserId
-  let token;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  }
-  const decoded = token
-    ? await promisify(jwt.verify)(token, process.env.JWT_SECRET)
+  const decoded = req.cookies
+    ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
     : undefined;
 
   //2 Qurey Handler
@@ -88,31 +82,120 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
   ) {
     return next(new AppError("Incorrect Auctioneer Query", 400));
   }
+  let auction;
+  let formatedAuction = [];
+  if (filter === "recent_bidding") {
+    const bidHistory = await BidHistory.find({ bidderID: decoded.id }).sort({
+      biddingDate: -1,
+    });
+    const auctionIDs = Array.from(bidHistory, (value) =>
+      String(value.auctionID)
+    );
+    console.log(auctionIDs);
+    const distinctAuctionIDs = auctionIDs.filter(
+      (v, i, a) => a.indexOf(v) === i
+    );
+    console.log(distinctAuctionIDs);
 
-  if (filter === "popular") {
-    const auctions = await Auction.find({ auctionStatus: "bidding" });
+    auction = await Auction.find({ _id: { $in: distinctAuctionIDs } });
+
+    console.log(auction);
+
+    auction.forEach((value) => {
+      let tempVal = {
+        auctionID: value._id,
+        coverPicture: value.productDetail.productPicture[0] || "default.jpg",
+        productName: value.productDetail.productName,
+        currentPrice: value.currentPrice,
+        endDate: String(new Date(value.endDate).getTime()),
+        isWinning: String(value.currentWinnerID) === decoded.id,
+      };
+
+      formatedAuction.push(tempVal);
+    });
+  } else if (filter === "my_following_list" && decoded) {
+    // สุ่มที่กด follow มา
+    const user = await User.findById(decoded.id).populate({
+      path: "followingList",
+    });
+
+    auction = user.followingList;
+    auction.forEach((value) => {
+      value = {
+        auctionID: value._id,
+        coverPicture: value.productDetail.productPicture[0] || "default.jpg",
+        productName: value.productDetail.productName,
+        endDate: String(new Date(value.endDate).getTime()),
+        isWinning: value.currentWinnerID
+          ? String(value.currentWinnerID) === decoded.id
+          : false,
+      };
+      formatedAuction.push(value);
+    });
+    console.log(auction);
+  } else if (filter === "popular") {
+    // Serach ตามจำนวน bidder
+    auction = await Auction.find().populate({ path: "bidHistory" });
+    Array.from(auction, (value) => {
+      const distinctBidder = [
+        ...new Set(value.bidHistory.map((x) => String(x.bidderID))),
+      ];
+      value = {
+        auctionID: value._id,
+        coverPicture: value.productDetail.productPicture[0] || "default.jpg",
+        productName: value.productDetail.productName,
+        endDate: String(new Date(value.endDate).getTime()),
+        isWinning: value.currentWinnerID
+          ? String(value.currentWinnerID) === decoded.id
+          : false,
+        bidderCount: distinctBidder.length,
+      };
+      formatedAuction.push(value);
+    });
+    formatedAuction.sort((a, b) => (a.bidderCount > b.bidderCount ? -1 : 1));
+  } else if (filter === "ending_soon") {
+    // Search ตาม Auction ใกล้หมดเวลา
+    auction = await Auction.aggregate([
+      {
+        $project: {
+          auctionID: "$_id",
+          coverPicture: "$productDetail.productPicture",
+          productName: "$productDetail.productName",
+          currentPrice: "$currentPrice",
+          endDate: "$endDate",
+          //ใช้ได้เฉย
+          isWinning: {
+            $eq: ["$currentWinnerID", { $toObjectId: decoded.id }],
+          },
+          timeRemaining: {
+            $subtract: ["$endDate", Date.now()],
+          },
+        },
+      },
+    ]);
+
+    auction.sort((a, b) => (a.timeRemaining > b.timeRemaining ? 1 : -1));
+    auction.forEach((value) => {
+      delete value._id;
+      delete value.timeRemaining;
+      value.endDate = String(new Date(value.endDate).getTime());
+      value.coverPicture = value.coverPicture[0] || "default.jpg";
+    });
+    formatedAuction = auction;
   }
-  //   if (filter === "recent_bidding") {
-  //     const user = await User.findById(decoded.id);
-  //     res.status(200).json({
-  //       status: "success",
-  //       user,
-  //     });
-  //   }
+
+  console.log("Before success");
+
+  res.status(200).json({
+    stauts: "success",
+    data: formatedAuction.slice(0, 15),
+  });
 });
 
 exports.getSearch = catchAsync(async (req, res, next) => {
   // 1) Get current user ID
-  let token;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  }
-
-  const decoded = token
-    ? await promisify(jwt.verify)(token, process.env.JWT_SECRET)
+  const decoded = req.cookies
+    ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
     : undefined;
 
   const page = req.query.page ? req.query.page : 1;
@@ -123,9 +206,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
   //1) Search by name or category
   let auction;
   if (name) {
-    // auction = await Auction.find({
-    //   "productDetail.productName": { $regex: `/^${name}/` },
-    // });
+    //Search by Name
     auction = await Auction.aggregate([
       { $unwind: "$productDetail" },
       {
@@ -142,6 +223,8 @@ exports.getSearch = catchAsync(async (req, res, next) => {
           coverPicture: "$productDetail.productPicture",
           endDate: "$endDate",
           currentPrice: "$currentPrice",
+          currentWinnerID: "$currentWinnerID",
+          //isWinning พังอยู่
           isWinning: {
             $eq: ["$currentWinnerID", decoded.id],
           },
@@ -152,6 +235,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
       },
     ]);
   } else {
+    //Search By Category
     auction = await Auction.aggregate([
       { $unwind: "$productDetail" },
       {
@@ -172,8 +256,9 @@ exports.getSearch = catchAsync(async (req, res, next) => {
           coverPicture: "$productDetail.productPicture",
           endDate: "$endDate",
           currentPrice: "$currentPrice",
+          //isWinning พังอยู่
           isWinning: {
-            $eq: ["$currentWinnerID", decoded.id],
+            $eq: ["$currentWinnerID", { $toObjectId: decoded.id }],
           },
           timeRemaining: {
             $subtract: ["$endDate", Date.now()],
@@ -182,21 +267,36 @@ exports.getSearch = catchAsync(async (req, res, next) => {
       },
     ]);
   }
+  // แก้ isWinning
+  auction.forEach((value, index, arr) => {
+    value.isWinning = String(value.currentWinnerID) == decoded.id;
+    value.coverPicture = value.coverPicture[0] || "default.jpg";
+  });
+
   // 2) Sorting
   if (sort === "highest_bid") {
     auction.sort((a, b) => (a.currentPrice > b.currentPrice ? -1 : 1));
   } else if (sort === "lowest_bid") {
     auction.sort((a, b) => (a.currentPrice > b.currentPrice ? 1 : -1));
   } else if (sort === "newest") {
-    auction.sort((a, b) => (a.startDate > b.startDate ? 1 : -1));
+    auction.sort((a, b) => (a.startDate > b.startDate ? -1 : 1));
   } else if (sort === "time_remaining") {
-    auction.sort((a, b) => (a.timeRemaining > b.timeRemaining ? -1 : 1));
+    auction.sort((a, b) => (a.timeRemaining > b.timeRemaining ? 1 : -1));
   } else {
     auction.sort((a, b) => (a.currentPrice > b.currentPrice ? -1 : 1));
   }
   let totalResult = auction.length;
   let paginateAuction = paginate(auction, 35, page);
-  let totalPage = Math.round(auction.length / 35);
+  paginateAuction.forEach((value) => {
+    value.endDate = String(new Date(value.endDate).getTime());
+    delete value.timeRemaining;
+    delete value._id;
+    delete value.currentWinnerID;
+  });
+
+  console.log(paginateAuction);
+
+  let totalPage = Math.floor(auction.length / 35) + 1;
 
   res.status(200).json({
     status: "success",
@@ -210,17 +310,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
 
 exports.getFollow = catchAsync(async (req, res, next) => {
   // 1) Get current user ID
-  let token;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  }
-
-  const decoded = token
-    ? await promisify(jwt.verify)(token, process.env.JWT_SECRET)
-    : undefined;
+  const decoded = req.user;
 
   if (!decoded) {
     return next(new AppError("Token not found"), 401);
@@ -230,6 +320,18 @@ exports.getFollow = catchAsync(async (req, res, next) => {
   if (!user) {
     return next(new AppError("User not found"), 400);
   }
+
+  //If user already bid item cant follow
+  user.activeBiddingList.forEach((value) => {
+    if (String(value) === req.params.auction_id)
+      return next(new AppError("You already bid this auction", 400));
+  });
+
+  // Your own auction
+  user.activeAuctionList.forEach((value) => {
+    if (String(value) === req.params.auction_id)
+      return next(new AppError("This is your auction"), 400);
+  });
 
   res.status(200).json({
     status: "success",
@@ -243,17 +345,8 @@ exports.getFollow = catchAsync(async (req, res, next) => {
 
 exports.postFollow = catchAsync(async (req, res, next) => {
   // 1) Get current user ID
-  let token;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  }
 
-  const decoded = token
-    ? await promisify(jwt.verify)(token, process.env.JWT_SECRET)
-    : undefined;
+  const decoded = req.user;
 
   // 2) Error Handler
   if (!decoded) {
@@ -273,6 +366,19 @@ exports.postFollow = catchAsync(async (req, res, next) => {
   if (!auction) {
     return next(new AppError("Auction not found"), 400);
   }
+
+  //If user already bid item cant follow
+  user.activeBiddingList.forEach((value) => {
+    if (String(value) === req.params.auction_id)
+      return next(new AppError("You cannot follow your activeBidding", 400));
+  });
+
+  //If user follow their own auction
+  user.activeAuctionList.forEach((value) => {
+    if (String(value) === req.params.auction_id)
+      return next(new AppError("You cannot follow your own auction"), 400);
+  });
+
   // 3) Insert or Removing following Auctions
   if (req.body.follow === "true") {
     if (!user.followingList.includes(req.params.auction_id)) {
@@ -301,17 +407,7 @@ exports.postFollow = catchAsync(async (req, res, next) => {
 // Not Implement store picture yet
 exports.postAuction = catchAsync(async (req, res, next) => {
   // 1) Get current user ID
-  let token;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  }
-
-  const decoded = token
-    ? await promisify(jwt.verify)(token, process.env.JWT_SECRET)
-    : undefined;
+  const decoded = req.user;
 
   if (!decoded.id) {
     return next(new AppError("Token not found"), 401);
@@ -380,16 +476,9 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
 
 exports.getBidHistory = catchAsync(async (req, res, next) => {
   // 1) Get current user ID
-  let token;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  }
 
-  const decoded = token
-    ? await promisify(jwt.verify)(token, process.env.JWT_SECRET)
+  const decoded = req.cookies
+    ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
     : undefined;
 
   const auction_id = req.params.auction_id;
@@ -432,7 +521,6 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
 
     // Please come and fixed this in the future
     if (index === bidHistory.length - 1 || bidHistory.length === 0) {
-      console.log("fuck");
       res.status(200).json({
         status: "success",
         bidHistory: formatBidHistory,
@@ -469,21 +557,7 @@ exports.refresh = catchAsync(async (req, res, next) => {
 
 exports.postBid = catchAsync(async (req, res, next) => {
   // 1) Get current user ID
-  let token;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  }
-
-  const decoded = token
-    ? await promisify(jwt.verify)(token, process.env.JWT_SECRET)
-    : undefined;
-
-  if (!decoded) {
-    return next(new AppError("User not found"), 400);
-  }
+  const user_id = req.user.id;
   //2 Get AuctionID
   const auctionID = req.params.auction_id;
 
@@ -506,7 +580,7 @@ exports.postBid = catchAsync(async (req, res, next) => {
     { _id: req.params.auction_id },
     {
       currentPrice: req.body.biddingPrice,
-      currentWinnerID: decoded.id,
+      currentWinnerID: user_id,
       endDate:
         auction.expectedPrice && auction.expectedPrice <= auction.currentPrice
           ? Date.now() + 60 * 60 * 1000
@@ -515,20 +589,29 @@ exports.postBid = catchAsync(async (req, res, next) => {
   );
 
   //4) Add to activeBiddingList if user never bid before
-  const user = await User.findById(decoded.id);
+  let user = await User.findById(user_id);
   if (!user.activeBiddingList.includes(req.params.auction_id)) {
     user.activeBiddingList.push(req.params.auction_id);
   }
+
+  //5 Remove auction from followingList if exist
+  const index = user.followingList.indexOf(req.params.auction_id);
+  if (index > -1) {
+    user.followingList.splice(index, 1);
+  }
+
   user.save();
 
-  //5 Create Bid History
+  //6 Create Bid History
   const bidHistory = {
-    bidderID: decoded.id,
+    bidderID: user_id,
     auctionID,
     biddingPrice: req.body.biddingPrice,
     biddingDate: Date.now(),
   };
+
   const newBidHistory = await BidHistory.create(bidHistory);
+  console.log(newBidHistory);
 
   const addBidHistory = await Auction.updateOne(
     { _id: req.params.auction_id },
