@@ -48,17 +48,18 @@ app.use(
   })
 );
 
+app.use(cookieParser());
+
 // Serving static files
 app.use(express.static(`${__dirname}/public`));
 
-// read cookies
-app.use(cookieParser());
-
-// Test middleware
-app.use((req, res, next) => {
-  req.requestTime = new Date().toISOString();
-  next();
-});
+-(
+  // Test middleware
+  app.use((req, res, next) => {
+    req.requestTime = new Date().toISOString();
+    next();
+  })
+);
 
 // Route
 
