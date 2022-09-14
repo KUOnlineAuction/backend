@@ -6,16 +6,17 @@ const AppError = require("./../utils/appError")
 const Email = require("./../utils/email")
 const crypto = require('crypto')
 
-const signToken = (id,displayName) => {
-    return jwt.sign({ id, displayName }, process.env.JWT_SECRET, {
+const signToken = (id) => {
+    return jwt.sign({ id }, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRES_IN
     })
 }
 
 const createAndSendToken = (user, statusCode, res) => {
-    const token = signToken(user._id, user.displayName)
+    const token = signToken(user._id)
     const cookieOption = {
         expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000),
+        displayName: user.displayName,
         httpOnly: true
     }
 
@@ -66,7 +67,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     })
 })
 
-exports.signupnoverify= catchAsync(async (req, res, nex) => {
+exports.signupnoverify= catchAsync(async (req, res, next) => {
     if(process.env.NODE_ENV !== 'development'){
         return next(new AppError('You are not authorized to access this.', 401))
     }
