@@ -12,35 +12,36 @@ const catchAsync = require('./../utils/catchAsync');
 const { promisify } = require('util')
 const jwt = require('jsonwebtoken')
 const AppError = require("./../utils/appError")
-const getPicture = require("./../utils/getPicture")
+const {getPicture, savePicture} = require("./../utils/getPicture")
 
-const multerStorage = multer.memoryStorage()
+// const multerStorage = multer.memoryStorage()
 
-const multerFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image')) {
-    cb(null, true);
-  } else {
-    cb(new AppError('Not an image! Please upload only images.', 400), false);
-  }
-};
+// const multerFilter = (req, file, cb) => {
+//   if (file.mimetype.startsWith('image')) {
+//     cb(null, true);
+//   } else {
+//     cb(new AppError('Not an image! Please upload only images.', 400), false);
+//   }
+// };
 
-const upload = multer({
-  storage: multerStorage,
-  fileFilter: multerFilter
-});
+// const upload = multer({
+//   storage: multerStorage,
+//   fileFilter: multerFilter
+// });
 
-exports.uploadUserImage = upload.single('photo')
+// exports.uploadUserImage = upload.single('photo')
 
-exports.resizeUserImage = (req ,res, next) => {
-    if(!req.file) return (next())
-
-    req.file.filename = `${req.user.id}.jpg`
-    const filePath = path.join(__dirname, '..', 'picture', 'profilePicture', req.file.filename)
-    sharp(req.file.buffer).resize(1000,1000).toFormat('jpeg').jpeg({quality: 50}).toFile(filePath)
-    next()
-}
+// exports.resizeUserImage = (req ,res, next) => {
+//     const img = req.body.profilePicture.replace(/.*,/, "");
+//     const imageBuffer = Buffer.from(img, 'base64')
+//     req.body.filename = `${req.user.id}.jpg`
+//     const filePath = path.join(__dirname, '..', 'picture', 'profilePicture', req.body.filename)
+//     sharp(imageBuffer).resize(1000,1000).toFormat('jpeg').jpeg({quality: 50}).toFile(filePath)
+//     next()
+// }
 
 exports.myProfile = catchAsync( async (req, res, next) => {
+    
     // 1) Get current user ID
     const decoded = await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
 
@@ -75,8 +76,10 @@ exports.editProfle = catchAsync (async (req, res, next) =>{
 
     // 2) update the provided feilds
     // 2.1) update the profile picture
-    if(req.file){
-        user.profilePicture = req.file.filename
+
+    if(req.body.profilePicture){
+        const filename = `${req.user.id}.jpg`
+        await savePicture(req.body.profilePicture, 'profilePicture', filename)
     }
 
     // 2.2) then the rest
@@ -201,7 +204,7 @@ exports.aucProfile = catchAsync (async (req, res, next) =>{
     }
 
     // 5) get the user profile pic
-    user.profilePicture = await getPicture('profilePicture',user.profilePicture)
+    user.profilePicture = await getPicture('profilePicture',user.profilePicture, 200,200)
 
     // 6) get the auctions
     let queryString = []
