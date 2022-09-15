@@ -5,7 +5,6 @@ const auctionController = require("./../controllers/auctionController");
 
 const router = express.Router();
 
-
 //Router
 
 //Auction Summary List (Not Finished)
@@ -31,11 +30,7 @@ router
 router.post("/upload", authController.protect, auctionController.postAuction); //Nearly Finish
 
 //Get Auction Detail (Picture not implement)
-router.get(
-  "/:auction_id",
-  auctionController.uploadProductPicture,
-  auctionController.getAuctionDetail
-);
+router.get("/:auction_id", auctionController.getAuctionDetail);
 
 //Bid Histroy
 router.get("/:auction_id/bid-history", auctionController.getBidHistory);

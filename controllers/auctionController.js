@@ -10,29 +10,7 @@ const { promisify } = require("util");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const { verify } = require("crypto");
-
-//Define Multer
-const multerStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "picture/productPicture");
-  },
-  filename: catchAsync(async (req, file, cb) => {
-    //1. Get UserId
-    let token;
-    if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith("Bearer")
-    ) {
-      token = req.headers.authorization.split(" ")[1];
-    }
-    const decoded = token
-      ? await promisify(jwt.verify)(token, process.env.JWT_SECRET)
-      : undefined;
-
-    const ext = file.minetype.split("/")[1];
-    cb(null, `auction-${decoded}.${ext}`);
-  }),
-});
+const getPicture = require("./../utils/getPicture");
 
 //Hepler Function
 const defaultMinimumBid = (incomingBid) => {
@@ -53,17 +31,27 @@ const paginate = (array, page_size, page_number) => {
   return array.slice((page_number - 1) * page_size, page_number * page_size);
 };
 
-const multerFilter = (req, file, cb) => {
-  if (file.minetype.startsWith("image")) {
-    cb(null, true);
-  } else {
-    cb(new AppError("Not an image! Please upload only images.", 400), false);
-  }
+// fraud calcuation if return true == fraud , false === not fraud
+const fraudCalculate = (totalAuctioned, successAuctioned, rating) => {
+  if (
+    totalAuctioned > 5 &&
+    (successAuctioned < totalAuctioned / 2 || rating < 2)
+  )
+    return true;
+  return false;
 };
 
-const upload = multer({ storage: multerStorage, fileFilter: multerFilter });
 
-exports.uploadProductPicture = upload.single("photo");
+const getPictures = (folder, pictures) => {
+  let arrayOfBase64 = [];
+  for (const pic of pictures) {
+    const base64 = getPicture(folder, `${pic}.jpeg`);
+    arrayOfBase64.push(base64);
+  }
+
+  return arrayOfBase64;
+};
+
 
 /////////////////
 
@@ -440,7 +428,7 @@ exports.postAuction = catchAsync(async (req, res, next) => {
   user.save();
 
   res.status(201).json({
-    stauts: "sucess",
+    stauts: "success",
   });
 });
 
@@ -459,8 +447,6 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
   }
 
   const auction = await Auction.findById(auctionId);
-  console.log(auction.bidStep);
-
   if (!auction) {
     return next(new AppError("Auction not found"));
   }
@@ -471,14 +457,26 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
     bidderID: decoded.id,
   }).sort({ biddingDate: -1 });
 
-  console.log(bidHistory);
+  // Get product Picture
+  const productPicture = await Promise.all(
+    getPictures("productPicture", auction.productPicture)
+  );
+
+  // Get fraud
+  const user = await User.findById(auction.auctioneerID);
+  const isFraud = fraudCalculate(
+    user.totalAuctioned,
+    user.successAuctioned,
+    user.rating
+  );
+
   res.status(200).json({
     status: "success",
     data: {
       productDetail: {
         productName: auction.productDetail.productName,
         description: auction.productDetail.description,
-        productPicture: auction.productDetail.productPicture,
+        productPicture,
       },
       auctioneerID: auction.auctioneerID,
       bidStep: auction.bidStep || defaultMinimumBid(auction.currentPrice),
@@ -489,6 +487,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
 
       myLastBid: bidHistory[0] ? bidHistory[0].biddingPrice : 0,
       isAuctioneer: decoded.id === String(auction.auctioneerID),
+      isFraud,
     },
   });
 });
