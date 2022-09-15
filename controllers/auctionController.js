@@ -10,7 +10,7 @@ const { promisify } = require("util");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const { verify } = require("crypto");
-const getPicture = require("./../utils/getPicture");
+const { getPicture, savePicture } = require("./../utils/getPicture");
 
 //Hepler Function
 const defaultMinimumBid = (incomingBid) => {
@@ -581,8 +581,30 @@ exports.postBid = catchAsync(async (req, res, next) => {
   //2 Get AuctionID
   const auctionID = req.params.auction_id;
 
-  //3 Update Auction ขอใส่อันนี้ไปก่อนเดียวไป refactor code ทีหลัง
+  let user = await User.findById(user_id);
   const auction = await Auction.findById(req.params.auction_id);
+
+  // Error Handler
+  // If auction already in 5 minute system user can only bid once
+  if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
+    const bidHistory = await BidHistory.find({
+      bidderID: user._id,
+      auctionID: auction._id,
+      biddingDate: {
+        $gte: auction.endDate + 5 * 60 * 1000,
+      },
+    });
+
+    if (bidHistory.length > 0)
+      return next(new AppError("5 minute auction can be only bid once"));
+  }
+
+  // If postBid after bidding endded
+
+  if (auction.auctionStatus !== "bidding")
+    return next(new AppError("Bid is already ended"));
+
+  //3 Update Auction ขอใส่อันนี้ไปก่อนเดียวไป refactor code ทีหลัง
 
   const bidStep =
     auction.minimumBidPrice | defaultMinimumBid(auction.currentPrice);
@@ -609,7 +631,6 @@ exports.postBid = catchAsync(async (req, res, next) => {
   );
 
   //4) Add to activeBiddingList if user never bid before
-  let user = await User.findById(user_id);
   if (!user.activeBiddingList.includes(req.params.auction_id)) {
     user.activeBiddingList.push(req.params.auction_id);
   }
