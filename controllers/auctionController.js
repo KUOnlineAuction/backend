@@ -41,7 +41,6 @@ const fraudCalculate = (totalAuctioned, successAuctioned, rating) => {
   return false;
 };
 
-
 const getPictures = (folder, pictures) => {
   let arrayOfBase64 = [];
   for (const pic of pictures) {
@@ -51,7 +50,6 @@ const getPictures = (folder, pictures) => {
 
   return arrayOfBase64;
 };
-
 
 /////////////////
 
@@ -459,7 +457,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
 
   // Get product Picture
   const productPicture = await Promise.all(
-    getPictures("productPicture", auction.productPicture)
+    getPictures("productPicture", auction.productPicture || [])
   );
 
   // Get fraud
