@@ -9,7 +9,7 @@ const readFile = promisify(fs.readFile);
 
 const getPicture = async(folder, filename, width=1000, height=1000) => {
     picturePath = path.join(__dirname, '..', 'picture', folder, filename)
-    const pictureContentBuffer = await readFile(picturePath).catch(err => {return undefined})
+    const pictureContentBuffer = await readFile(picturePath)
     const pictureContent = await sharp(pictureContentBuffer).resize(width,height).toBuffer()
     const base64pictureContent = pictureContent.toString(`base64`)
     return `data:image/jpeg;base64,${base64pictureContent}`

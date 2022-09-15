@@ -79,7 +79,7 @@ exports.editProfle = catchAsync (async (req, res, next) =>{
 
     if(req.body.profilePicture){
         const filename = `${req.user.id}.jpg`
-        await savePicture(req.body.profilePicture, 'profilePicture', filename)
+        await savePicture(req.body.profilePicture, 'profilePicture', filename, 1000,1000,quality=80)
     }
 
     // 2.2) then the rest
