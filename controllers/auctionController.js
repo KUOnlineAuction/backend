@@ -39,7 +39,7 @@ const defaultMinimumBid = (incomingBid) => {
   const digitCount = Math.ceil(Math.log10(incomingBid));
   return incomingBid >= 5000
     ? Math.pow(10, digitCount - 3) *
-        Math.ceil(incomingBid / Math.pow(10, digitCount - 1))
+    Math.ceil(incomingBid / Math.pow(10, digitCount - 1))
     : 50;
 };
 
