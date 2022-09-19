@@ -144,7 +144,11 @@ exports.getTransacDetail = catchAsync( async (req, res, next) => {
             }
         ])
         detail = detail[0]
-        detail.transactionSlip = await getPicture('slipPicture', detail.transactionSlip)
+        const slipPic = await getPicture('slipPicture', detail.transactionSlip)
+        if(!slipPic){
+            return next(new AppError("Couldn't find the picture"),500)
+        }
+        detail.transactionSlip = slipPic
     }
     else if(req.query.detail === "delivery"){
         detail = await BillingInfo.aggregate([
@@ -174,7 +178,11 @@ exports.getTransacDetail = catchAsync( async (req, res, next) => {
             }
         ])
         detail = detail[0]
-        detail.packagePicture = await getPicture('packagePicture', detail.packagePicture)
+        const packagePic = await getPicture('packagePicture', detail.packagePicture)
+        if(!packagePic){
+            return next(new AppError("Couldn't find the picture"),500)
+        }
+        detail.packagePicture = packagePic
     }
     
     

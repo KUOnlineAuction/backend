@@ -10,7 +10,7 @@ router.post('/signupnoverify', authController.signupnoverify) //done
 router.post('/validateUser/:id', authController.validateUser) //done
 
 router.post('/signin', authController.login) //done
-router.post('/signout', authController.signout) //done
+router.post('/signout', authController.protect, authController.signout) //done
 
 router.post('/forgot-password', authController.forgotPassword) // done
 router.post('/reset-password', authController.resetPassword) //done

@@ -14,16 +14,6 @@ const signToken = (id) => {
 
 const createAndSendToken = (user, statusCode, res) => {
     const token = signToken(user._id)
-    const cookieOption = {
-        expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000),
-        displayName: user.displayName,
-        httpOnly: true
-    }
-
-    if(process.env.NODE_ENV === 'developement') cookieOption.httpOnly = false
-    if(process.env.NODE_ENV === 'production') cookieOption.secure = true
-
-    res.cookie('jwt', token, cookieOption)
 
     user.password = undefined
     user.passwordConfirm = undefined
@@ -48,6 +38,35 @@ exports.signup = catchAsync(async (req, res, next) => {
     const test = await User.findOne({email: user.email})
     if(test){
         return next(new AppError("The email haas already been used",400))
+    }
+
+    if(user.password.length<10){
+        return next(new AppError("The password is too short (at least 10 character)",400))
+    } else if (user.password.length>30){
+        return next(new AppError("The password is too long (at most 30 character)",400))
+    } else {
+        const specialChar = "!@#$%^&*()_-+=[]{}|;:’”,.<>/?~"
+        let lowercaseValidation = false
+        let uppercaseValidation = false
+        let specialCharValidation = false
+        for (let letter of user.password){
+            if (letter == letter.toUpperCase()) {
+                uppercaseValidation = true
+            } else if (letter == letter.toLowerCase()){
+                lowercaseValidation = true
+            } else if (specialChar.includes(letter)){
+                specialCharValidation = true
+            }
+        }
+        if(!lowercaseValidation){
+            return next(new AppError("The password must contain a lowercase character",400))
+        }
+        if(!uppercaseValidation){
+            return next(new AppError("The password must contain a uppercase character",400))
+        }
+        if(!specialCharValidation){
+            return next(new AppError("The password must contain a apecial character (!@#$%^&*()_-+=[]{}|;:’”,.<>/?~)",400))
+        }
     }
 
     // 2) Create new user in database
@@ -106,12 +125,20 @@ exports.login = catchAsync(async(req, res, next) => {
         return next(new AppError('Incorrect email or password', 401))
     }
 
+    user.passwordInvalidDate = undefined
+    await user.save({validateBeforeSave: false})
+
     // 3) if everything is ok, send the web token to the client
     createAndSendToken(user, 200, res)
 })
 
 exports.signout = catchAsync(async(req, res, next) => {
-    res.clearCookie("jwt")
+    // fix header
+    const user = await User.findById(req.user.id)
+
+    user.passwordInvalidDate = Date.now()
+    user.save({validateBeforeSave: false})
+
     res.status(201).json({
         "status" : "success",
     })
@@ -170,13 +197,16 @@ exports.resetPassword = catchAsync(async(req, res, next) => {
 
 // must login to access this API
 exports.protect = catchAsync(async (req, res, next) => {
+    let token;
     // 1) Get the token and check if it's exists
-    if (!req.cookies.jwt){
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        token = req.headers.authorization.split(' ')[1]
+    }
+    if (!token){
         return next(new AppError('You are not logged in, please log in to gain access.',401))
     }
-
     // 2) Validate the token
-    const decoded = await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
+    const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET)
     // Handled errors with errorController for JsonWebTokenError and TokenExpirefError
 
     // 3) Check if user still exists
@@ -188,6 +218,11 @@ exports.protect = catchAsync(async (req, res, next) => {
     // 4) Check if user changed password after the token was issued
     if (freshUser.changedPasswordAfter(decoded.iat)){ // iat = token issued at
         return next(new AppError('User recently changed the password. Please log in again.'))
+    }
+
+    // 5) Check if user is signed out or not
+    if (freshUser.passwordInvalidDate < Date.now()){
+        return next(new AppError('The user has logged out. Please log in again to enter this site.'))
     }
 
     // Grant Access to protected route

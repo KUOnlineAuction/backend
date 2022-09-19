@@ -43,10 +43,11 @@ const {getPicture, savePicture} = require("./../utils/getPicture")
 exports.myProfile = catchAsync( async (req, res, next) => {
     
     // 1) Get current user ID
-    const decoded = await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
+    // no longer needed
+
 
     // 2) query user
-    let user = await User.findById(decoded.id).select('accountDescription profilePicture displayName email phoneNumber address badge').lean()
+    let user = await User.findById(req.user.id).select('accountDescription profilePicture displayName email phoneNumber address badge').lean()
     if(!user){
         return next(new AppError("something went wrong",400))
     }
@@ -61,7 +62,11 @@ exports.myProfile = catchAsync( async (req, res, next) => {
     user.badge = badgeNames
 
     // 4) Convert profile image to base64 and send it
-    user.profilePicture = await getPicture('profilePicture',user.profilePicture)
+    const picture = await getPicture('profilePicture',user.profilePicture)
+    if(!picture){
+        return next(new AppError("Invalid folder/file name",500))
+    }
+    user.profilePicture = picture
 
     // Add handling errors
     res.status(200).json({
@@ -79,7 +84,8 @@ exports.editProfle = catchAsync (async (req, res, next) =>{
 
     if(req.body.profilePicture){
         const filename = `${req.user.id}.jpg`
-        await savePicture(req.body.profilePicture, 'profilePicture', filename, 1000,1000,quality=80)
+        // await savePicture(req.body.profilePicture, 'profilePicture', filename, 1000,1000,quality=80)
+        await savePicture(req.body.profilePicture, 'profilePicture', filename, null, null, null, original=true)
     }
 
     // 2.2) then the rest
@@ -104,8 +110,7 @@ exports.myorder = catchAsync (async (req, res, next) =>{
     }
 
     // 1) find the user + check if valid
-    const decoded = await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
-    let user = await User.findById(decoded.id).select('activeBiddingList finishedBiddingList activeAuctionList finishedAuctionList').lean()
+    let user = await User.findById(req.user.id).select('activeBiddingList finishedBiddingList activeAuctionList finishedAuctionList').lean()
     if(!user){
         return( next(new AppError("The user does not exists",400)))
     }
@@ -138,7 +143,11 @@ exports.myorder = catchAsync (async (req, res, next) =>{
     for( let el of auctions){
         el.auctionID = el._id
         // comment next line if picture hasn't been implemented
-        el.productPicture = await getPicture('auctionPicture', el.productDetail.productPicture[0])
+        const aucPic = await getPicture('auctionPicture', el.productDetail.productPicture[0])
+        if(!aucPic){
+            return next(new AppError("Couldn't find the picture"),500)
+        }
+        el.productPicture = aucPic
         el.productName = el.productDetail.productName
         el.lastBid = el.currentPrice
         if(el.auctionStatus === 'waiting'){
