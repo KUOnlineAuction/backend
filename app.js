@@ -5,7 +5,6 @@ const helmet = require("helmet");
 const mongoSanitize = require("express-mongo-sanitize");
 const xss = require("xss-clean");
 const hpp = require("hpp");
-const cookieParser = require("cookie-parser");
 const cors = require('cors');
 
 const AppError = require("./utils/appError");
@@ -20,7 +19,6 @@ const paymentRouter = require("./routes/paymentRoutes");
 
 const reviewRouter = require("./routes/reviewRoutes");
 const shippingRouter = require('./routes/shippingRoutes');
-
 
 const app = express();
 
@@ -42,6 +40,7 @@ const limiter = rateLimit({
 app.use("/", limiter);
 
 // Body parser, reading data from body into req.body
+
 app.use(express.json({ limit: "10MB" }));
 
 // Data sanitization against NoSQL query injection
@@ -57,7 +56,6 @@ app.use(
   })
 );
 
-app.use(cookieParser());
 //CORS!!!!!!!!!!
 const corsOptions ={
   origin:'http://localhost:3000', 
@@ -67,11 +65,10 @@ const corsOptions ={
 app.use(cors(corsOptions));
 
 // Serving static files
-app.use(express.static(`${__dirname}/public`));
+app.use(express.static(`${__dirname}/public`))
 
--(
-  // Test middleware
-  app.use((req, res, next) => {
+// Test middleware
+app.use((req,res,next)=>{
     req.requestTime = new Date().toISOString();
     next();
   })
@@ -81,13 +78,13 @@ app.use(express.static(`${__dirname}/public`));
 
 // app.use('/test', testRouter);
 app.use("/user", userRouter);
+app.use('/admin', adminRouter);
 app.use("/auction", auctionRouter);
 app.use("/report", reportRouter);
 app.use("/payment", paymentRouter);
 
 app.use("/review", reviewRouter);
 app.use("/shipping", shippingRouter);
-
 
 // Handle other invalid routes
 app.all("*", (req, res, next) => {
