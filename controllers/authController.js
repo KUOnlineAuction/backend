@@ -48,12 +48,15 @@ exports.signup = catchAsync(async (req, res, next) => {
         const specialChar = "!@#$%^&*()_-+=[]{}|;:’”,.<>/?~"
         let lowercaseValidation = false
         let uppercaseValidation = false
+        let numberValidation = false
         let specialCharValidation = false
         for (let letter of user.password){
             if (letter == letter.toUpperCase()) {
                 uppercaseValidation = true
             } else if (letter == letter.toLowerCase()){
                 lowercaseValidation = true
+            } else if (!isNaN(letter)){
+                numberValidation = true
             } else if (specialChar.includes(letter)){
                 specialCharValidation = true
             }
@@ -63,6 +66,9 @@ exports.signup = catchAsync(async (req, res, next) => {
         }
         if(!uppercaseValidation){
             return next(new AppError("The password must contain a uppercase character",400))
+        }
+        if(!numberValidation){
+            return next(new AppError("The password must contain a number",400))
         }
         if(!specialCharValidation){
             return next(new AppError("The password must contain a apecial character (!@#$%^&*()_-+=[]{}|;:’”,.<>/?~)",400))
@@ -196,10 +202,45 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
     return next(new AppError("Token is invalid or expired", 400));
   }
 
-  user.password = req.body.newPassword;
-  user.passwordResetToken = undefined;
-  user.passwordResetExpires = undefined;
-  await user.save();
+    if(req.body.password.length<10){
+        return next(new AppError("The password is too short (at least 10 character)",400))
+    } else if (req.body.password.length>30){
+        return next(new AppError("The password is too long (at most 30 character)",400))
+    } else {
+        const specialChar = "!@#$%^&*()_-+=[]{}|;:’”,.<>/?~"
+        let lowercaseValidation = false
+        let uppercaseValidation = false
+        let numberValidation = false
+        let specialCharValidation = false
+        for (let letter of req.body.password){
+            if (letter == letter.toUpperCase()) {
+                uppercaseValidation = true
+            } else if (letter == letter.toLowerCase()){
+                lowercaseValidation = true
+            } else if (!isNaN(letter)){
+                numberValidation = true
+            } else if (specialChar.includes(letter)){
+                specialCharValidation = true
+            }
+        }
+        if(!lowercaseValidation){
+            return next(new AppError("The password must contain a lowercase character",400))
+        }
+        if(!uppercaseValidation){
+            return next(new AppError("The password must contain a uppercase character",400))
+        }
+        if(!numberValidation){
+            return next(new AppError("The password must contain a number",400))
+        }
+        if(!specialCharValidation){
+            return next(new AppError("The password must contain a apecial character (!@#$%^&*()_-+=[]{}|;:’”,.<>/?~)",400))
+        }
+    }
+
+    user.password = req.body.newPassword
+    user.passwordResetToken = undefined
+    user.passwordResetExpires = undefined
+    await user.save()
 
   // 3) log the user in, send JWT
   createAndSendToken(user, 200, res);
