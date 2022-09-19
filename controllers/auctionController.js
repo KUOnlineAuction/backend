@@ -2,14 +2,11 @@ const Auction = require("./../models/auctionModel");
 const User = require("./../models/userModel");
 const BidHistory = require("./../models/bidHistoryModel");
 
-const mongoose = require("mongoose");
 const catchAsync = require("./../utils/catchAsync");
 const AppError = require("./../utils/appError");
 
 const { promisify } = require("util");
 const jwt = require("jsonwebtoken");
-const multer = require("multer");
-const { verify } = require("crypto");
 const { getPicture, savePicture } = require("./../utils/getPicture");
 
 //Hepler Function
@@ -266,10 +263,8 @@ exports.getSearch = catchAsync(async (req, res, next) => {
       ? await getPicture("productPicture", value.coverPicture[0])
       : await getPicture("productPicture", "default.jpeg");
 
-    console.log(value.coverPicture);
   });
 
-  // console.log(auction);c
 
   // 2) Sorting
   if (sort === "highest_bid") {
@@ -411,6 +406,7 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 
   //2) Create Auction
 
+
   const createdAuction = { ...req.body };
   const productDetail = {
     productName: req.body.productName,
@@ -426,12 +422,19 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 
   createdAuction.productDetail = productDetail;
   createdAuction.auctioneerID = decoded.id;
-  createdAuction.endDate = new Date(req.body.endDate * 1000);
+  createdAuction.endDate = req.body.endDate
+    ? new Date(req.body.endDate * 1000)
+    : null;
 
   const newAuction = await Auction.create(createdAuction);
   newAuction.productDetail.productPicture = [];
   //Format Picture
+
+
   const productPictureNames = [];
+  if (!req.body.productPicture) {
+    return next(new AppError("Please send productPicure"), 400);
+  }
   req.body.productPicture.forEach((value, index, arr) => {
     const pictureName = `${newAuction._id}-${index}.jpeg`;
     productPictureNames.push(pictureName);
@@ -439,6 +442,7 @@ exports.postAuction = catchAsync(async (req, res, next) => {
   });
 
   savePictures("productPicture", req.body.productPicture, productPictureNames);
+  // savePicture(req.body.productPicture, "productPicture", "HelloWorkd.jpeg");
 
   newAuction.save();
 
@@ -451,7 +455,7 @@ exports.postAuction = catchAsync(async (req, res, next) => {
   user.save();
 
   res.status(201).json({
-    stauts: "success",
+    status: "success",
   });
 });
 

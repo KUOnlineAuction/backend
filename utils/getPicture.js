@@ -25,7 +25,7 @@ const savePicture = async (
   height = 1000,
   quality = 80
 ) => {
-  const img = base64Image.replace(/.*,/, "");
+  const img = base64Image.replace(/(.*,)?/, "");
   const imageBuffer = Buffer.from(img, "base64");
   const filePath = path.join(__dirname, "..", "picture", folder, filename);
   await sharp(imageBuffer)

@@ -1,5 +1,4 @@
 const express = require("express");
-const multer = require("multer");
 const authController = require("./../controllers/authController");
 const auctionController = require("./../controllers/auctionController");
 
