@@ -31,7 +31,7 @@ router.route('/report')
     .post(testController.postReport)
     .get(testController.getReports)
 
-router.route('/review')
+router.route('/review/:id')
     .post(testController.postReview)
     .get(testController.getReviews)
 
