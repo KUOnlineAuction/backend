@@ -8,6 +8,7 @@ const hpp = require("hpp");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 
+
 const AppError = require("./utils/appError");
 const globalErrorHandler = require("./controllers/errorController");
 
@@ -20,6 +21,7 @@ const paymentRouter = require("./routes/paymentRoutes");
 
 const reviewRouter = require("./routes/reviewRoutes");
 const shippingRouter = require("./routes/shippingRoutes");
+
 
 const app = express();
 
@@ -41,6 +43,7 @@ const limiter = rateLimit({
 app.use("/", limiter);
 
 // Body parser, reading data from body into req.body
+
 app.use(express.json({ limit: "10MB" }));
 
 // Data sanitization against NoSQL query injection
@@ -56,7 +59,6 @@ app.use(
   })
 );
 
-app.use(cookieParser());
 //CORS!!!!!!!!!!
 const corsOptions = {
   origin: "http://localhost:3000",
@@ -66,7 +68,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Serving static files
-app.use(express.static(`${__dirname}/public`));
+app.use(express.static(`${__dirname}/public`))
 
 // Test middleware
 app.use((req, res, next) => {
@@ -74,10 +76,12 @@ app.use((req, res, next) => {
   next();
 });
 
+
 // Route
 
 // app.use('/test', testRouter);
 app.use("/user", userRouter);
+app.use('/admin', adminRouter);
 app.use("/auction", auctionRouter);
 app.use("/report", reportRouter);
 app.use("/payment", paymentRouter);
