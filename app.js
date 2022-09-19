@@ -9,11 +9,17 @@ const cookieParser = require("cookie-parser");
 
 const AppError = require("./utils/appError");
 const globalErrorHandler = require("./controllers/errorController");
+
 // const testRouter = require('./routes/testRoutes')
 const userRouter = require("./routes/userRoutes");
 const auctionRouter = require("./routes/auctionRoutes");
 const reportRouter = require("./routes/reportRoutes");
+
 const paymentRouter = require("./routes/paymentRoutes");
+
+const reviewRouter = require("./routes/reviewRoutes");
+const shippingRouter = require('./routes/shippingRoutes');
+
 
 const app = express();
 
@@ -65,11 +71,15 @@ app.use(express.static(`${__dirname}/public`));
 
 // Route
 
-// app.use('/api/test', testRouter);
+// app.use('/test', testRouter);
 app.use("/user", userRouter);
 app.use("/auction", auctionRouter);
 app.use("/report", reportRouter);
 app.use("/payment", paymentRouter);
+
+app.use("/review", reviewRouter);
+app.use("/shipping", shippingRouter);
+
 
 // Handle other invalid routes
 app.all("*", (req, res, next) => {
