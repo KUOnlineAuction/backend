@@ -1,10 +1,10 @@
-const { promisify } = require('util')
-const User = require('./../models/userModel')
-const catchAsync = require('./../utils/catchAsync')
-const jwt = require('jsonwebtoken')
-const AppError = require("./../utils/appError")
-const Email = require("./../utils/email")
-const crypto = require('crypto')
+const { promisify } = require("util");
+const User = require("./../models/userModel");
+const catchAsync = require("./../utils/catchAsync");
+const jwt = require("jsonwebtoken");
+const AppError = require("./../utils/appError");
+const Email = require("./../utils/email");
+const crypto = require("crypto");
 
 const signToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -154,46 +154,56 @@ exports.validateUser = catchAsync(async(req, res, next) => {
 })
 
 exports.forgotPassword = catchAsync(async (req, res, next) => {
-    // 1) Get user based on POSTed email
-    const user = await User.findOne({ email: req.body.email })
-    if(!user) {
-        return next( new AppError('There is no user with this email address', 404));
-    }
+  // 1) Get user based on POSTed email
+  const user = await User.findOne({ email: req.body.email });
+  if (!user) {
+    return next(new AppError("There is no user with this email address", 404));
+  }
 
-    // 2) Generate the random reset token
-    const resetToken = crypto.randomBytes(32).toString('hex')
-    user.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex')
-    user.passwordResetExpires = Date.now() + 10*60*1000
-    await user.save({ validateBeforeSave: false});
+  // 2) Generate the random reset token
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  user.passwordResetToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+  user.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+  await user.save({ validateBeforeSave: false });
 
-    // 3) Send it as an email
-    const resetURL = `${req.protocol}://${req.get('host')}/api/user/reset-password?id=${resetToken}`
+  // 3) Send it as an email
+  const resetURL = `${req.protocol}://${req.get(
+    "host"
+  )}/api/user/reset-password?id=${resetToken}`;
 
-    await new Email(user,resetURL).sendPasswordReset()
-    res.status(200).json({
-        "status":"success"
-    })
-})
+  await new Email(user, resetURL).sendPasswordReset();
+  res.status(200).json({
+    status: "success",
+  });
+});
 
-exports.resetPassword = catchAsync(async(req, res, next) => {
-    // 1) get user based on the token
-    const hashedToken = crypto.createHash('sha256').update(req.query.id).digest('hex')
-    const user = await User.findOne({passwordResetToken: hashedToken, passwordResetExpires: {$gt: Date.now()}} )
+exports.resetPassword = catchAsync(async (req, res, next) => {
+  // 1) get user based on the token
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(req.query.id)
+    .digest("hex");
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpires: { $gt: Date.now() },
+  });
 
-    // 2) if token has not expired, and there is a user, set the new password
-    if (!user){
-        return next(new AppError('Token is invalid or expired', 400))
-    }
+  // 2) if token has not expired, and there is a user, set the new password
+  if (!user) {
+    return next(new AppError("Token is invalid or expired", 400));
+  }
 
-    user.password = req.body.newPassword
-    user.passwordResetToken = undefined
-    user.passwordResetExpires = undefined
-    await user.save()
+  user.password = req.body.newPassword;
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  await user.save();
 
-    // 3) log the user in, send JWT
-    createAndSendToken(user, 200, res)
-})
-
+  // 3) log the user in, send JWT
+  createAndSendToken(user, 200, res);
+});
 
 // must login to access this API
 exports.protect = catchAsync(async (req, res, next) => {
@@ -232,10 +242,13 @@ exports.protect = catchAsync(async (req, res, next) => {
 
 // Input list of user accessable user
 exports.restrictTo = (...roles) => {
-    return (req, res, next) => {
-        if(!roles.includes(req.user.userStatus)){
-            return next(new AppError('You do not have permission to perform this action'), 403)
-        }
-        next()
+  return (req, res, next) => {
+    if (!roles.includes(req.user.userStatus)) {
+      return next(
+        new AppError("You do not have permission to perform this action"),
+        403
+      );
     }
-}
+    next();
+  };
+};
