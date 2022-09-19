@@ -166,13 +166,41 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     auction.forEach((value) => {
       delete value._id;
       delete value.timeRemaining;
-      value.coverPicture = value.coverPicture[0] || "default.jpg";
+      value.coverPicture = value.coverPicture[0] || "default.jpeg";
+      value.endDate = String(new Date(value.endDate).getTime());
     });
     formatedAuction = auction;
   }
+  // auction = await Promise.all(
+  //   auction.map(async (obj) => {
+  //     const coverPicture = obj.coverPicture[0]
+  //       ? await getPicture("productPicture", obj.coverPicture[0])
+  //       : await getPicture("productPicture", "default.jpeg");
+  //     obj.isWinning = String(obj.currentWinnerID) == decoded.id;
+  //     obj.endDate = String(new Date(obj.endDate).getTime());
+  //     return {
+  //       ...obj,
+  //       coverPicture: coverPicture,
+  //     };
+  //   })
+  // );
+  formatedAuction = formatedAuction.slice(0, 15);
+  formatedAuction = await Promise.all(
+    formatedAuction.map(async (obj) => {
+      console.log(formatedAuction);
+      const coverPicture = obj.coverPicture
+        ? await getPicture("productPicture", obj.coverPicture)
+        : await getPicture("productPicture", "default.jpeg");
+      return {
+        ...obj,
+        coverPicture: coverPicture,
+      };
+    })
+  );
+
   res.status(200).json({
     stauts: "success",
-    data: formatedAuction.slice(0, 15),
+    data: formatedAuction,
   });
 });
 
@@ -256,13 +284,19 @@ exports.getSearch = catchAsync(async (req, res, next) => {
     ]);
   }
 
-  // แก้ isWinning
-  auction.forEach(async (value, index, arr) => {
-    value.isWinning = String(value.currentWinnerID) == decoded.id;
-    value.coverPicture = value.coverPicture[0]
-      ? await getPicture("productPicture", value.coverPicture[0])
-      : await getPicture("productPicture", "default.jpeg");
-  });
+  auction = await Promise.all(
+    auction.map(async (obj) => {
+      const coverPicture = obj.coverPicture[0]
+        ? await getPicture("productPicture", obj.coverPicture[0])
+        : await getPicture("productPicture", "default.jpeg");
+      obj.isWinning = String(obj.currentWinnerID) == decoded.id;
+      obj.endDate = String(new Date(obj.endDate).getTime());
+      return {
+        ...obj,
+        coverPicture: coverPicture,
+      };
+    })
+  );
 
   // 2) Sorting
   if (sort === "highest_bid") {
@@ -276,10 +310,10 @@ exports.getSearch = catchAsync(async (req, res, next) => {
   } else {
     auction.sort((a, b) => (a.currentPrice > b.currentPrice ? -1 : 1));
   }
+
   let totalResult = auction.length;
   let paginateAuction = paginate(auction, 35, page);
   paginateAuction.forEach((value) => {
-    value.endDate = String(new Date(value.endDate).getTime());
     delete value.timeRemaining;
     delete value._id;
     delete value.currentWinnerID;
