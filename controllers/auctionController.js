@@ -14,7 +14,7 @@ const defaultMinimumBid = (incomingBid) => {
   const digitCount = Math.ceil(Math.log10(incomingBid));
   return incomingBid >= 5000
     ? Math.pow(10, digitCount - 3) *
-    Math.ceil(incomingBid / Math.pow(10, digitCount - 1))
+        Math.ceil(incomingBid / Math.pow(10, digitCount - 1))
     : 50;
 };
 
@@ -262,9 +262,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
     value.coverPicture = value.coverPicture[0]
       ? await getPicture("productPicture", value.coverPicture[0])
       : await getPicture("productPicture", "default.jpeg");
-
   });
-
 
   // 2) Sorting
   if (sort === "highest_bid") {
@@ -406,7 +404,6 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 
   //2) Create Auction
 
-
   const createdAuction = { ...req.body };
   const productDetail = {
     productName: req.body.productName,
@@ -423,13 +420,12 @@ exports.postAuction = catchAsync(async (req, res, next) => {
   createdAuction.productDetail = productDetail;
   createdAuction.auctioneerID = decoded.id;
   createdAuction.endDate = req.body.endDate
-    ? new Date(req.body.endDate * 1000)
+    ? new Date(req.body.endDate * 1)
     : null;
 
   const newAuction = await Auction.create(createdAuction);
   newAuction.productDetail.productPicture = [];
   //Format Picture
-
 
   const productPictureNames = [];
   if (!req.body.productPicture) {
