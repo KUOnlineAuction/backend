@@ -14,8 +14,12 @@ const globalErrorHandler = require("./controllers/errorController");
 const userRouter = require("./routes/userRoutes");
 const auctionRouter = require("./routes/auctionRoutes");
 const reportRouter = require("./routes/reportRoutes");
+
+const paymentRouter = require("./routes/paymentRoutes");
+
 const reviewRouter = require("./routes/reviewRoutes");
 const shippingRouter = require('./routes/shippingRoutes');
+
 
 const app = express();
 
@@ -37,7 +41,7 @@ const limiter = rateLimit({
 app.use("/", limiter);
 
 // Body parser, reading data from body into req.body
-app.use(express.json({ limit: "10kb" }));
+app.use(express.json({ limit: "10MB" }));
 
 // Data sanitization against NoSQL query injection
 app.use(mongoSanitize());
@@ -71,8 +75,11 @@ app.use(express.static(`${__dirname}/public`));
 app.use("/user", userRouter);
 app.use("/auction", auctionRouter);
 app.use("/report", reportRouter);
+app.use("/payment", paymentRouter);
+
 app.use("/review", reviewRouter);
 app.use("/shipping", shippingRouter);
+
 
 // Handle other invalid routes
 app.all("*", (req, res, next) => {

@@ -2,37 +2,12 @@ const Auction = require("./../models/auctionModel");
 const User = require("./../models/userModel");
 const BidHistory = require("./../models/bidHistoryModel");
 
-const mongoose = require("mongoose");
 const catchAsync = require("./../utils/catchAsync");
 const AppError = require("./../utils/appError");
 
 const { promisify } = require("util");
 const jwt = require("jsonwebtoken");
-const multer = require("multer");
-const { verify } = require("crypto");
-
-//Define Multer
-const multerStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "picture/productPicture");
-  },
-  filename: catchAsync(async (req, file, cb) => {
-    //1. Get UserId
-    let token;
-    if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith("Bearer")
-    ) {
-      token = req.headers.authorization.split(" ")[1];
-    }
-    const decoded = token
-      ? await promisify(jwt.verify)(token, process.env.JWT_SECRET)
-      : undefined;
-
-    const ext = file.minetype.split("/")[1];
-    cb(null, `auction-${decoded}.${ext}`);
-  }),
-});
+const { getPicture, savePicture } = require("./../utils/getPicture");
 
 //Hepler Function
 const defaultMinimumBid = (incomingBid) => {
@@ -53,17 +28,31 @@ const paginate = (array, page_size, page_number) => {
   return array.slice((page_number - 1) * page_size, page_number * page_size);
 };
 
-const multerFilter = (req, file, cb) => {
-  if (file.minetype.startsWith("image")) {
-    cb(null, true);
-  } else {
-    cb(new AppError("Not an image! Please upload only images.", 400), false);
-  }
+// fraud calcuation if return true == fraud , false === not fraud
+const fraudCalculate = (totalAuctioned, successAuctioned, rating) => {
+  if (
+    totalAuctioned > 5 &&
+    (successAuctioned < totalAuctioned / 2 || rating < 2)
+  )
+    return true;
+  return false;
 };
 
-const upload = multer({ storage: multerStorage, fileFilter: multerFilter });
+const getPictures = (folder, pictures) => {
+  let arrayOfBase64 = [];
+  for (const pic of pictures) {
+    const base64 = getPicture(folder, `${pic}`);
+    arrayOfBase64.push(base64);
+  }
 
-exports.uploadProductPicture = upload.single("photo");
+  return arrayOfBase64;
+};
+
+const savePictures = catchAsync(async (folder, picturesBase64, savedName) => {
+  picturesBase64.forEach((value, index, arr) => {
+    savePicture(value, folder, savedName[index]);
+  });
+});
 
 /////////////////
 
@@ -177,12 +166,10 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     auction.forEach((value) => {
       delete value._id;
       delete value.timeRemaining;
-      value.endDate = String(new Date(value.endDate).getTime());
       value.coverPicture = value.coverPicture[0] || "default.jpg";
     });
     formatedAuction = auction;
   }
-
   res.status(200).json({
     stauts: "success",
     data: formatedAuction.slice(0, 15),
@@ -268,11 +255,16 @@ exports.getSearch = catchAsync(async (req, res, next) => {
       },
     ]);
   }
+
   // แก้ isWinning
-  auction.forEach((value, index, arr) => {
+  auction.forEach(async (value, index, arr) => {
     value.isWinning = String(value.currentWinnerID) == decoded.id;
-    value.coverPicture = value.coverPicture[0] || "default.jpg";
+    value.coverPicture = value.coverPicture[0]
+      ? await getPicture("productPicture", value.coverPicture[0])
+      : await getPicture("productPicture", "default.jpeg");
+
   });
+
 
   // 2) Sorting
   if (sort === "highest_bid") {
@@ -399,7 +391,7 @@ exports.postFollow = catchAsync(async (req, res, next) => {
   user.save();
 
   res.status(200).json({
-    stauts: "success",
+    status: "success",
   });
 });
 
@@ -413,11 +405,14 @@ exports.postAuction = catchAsync(async (req, res, next) => {
   }
 
   //2) Create Auction
+
+
   const createdAuction = { ...req.body };
   const productDetail = {
     productName: req.body.productName,
     category: req.body.category,
     description: req.body.description,
+    productPicture: [],
   };
 
   delete createdAuction.productName;
@@ -427,9 +422,29 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 
   createdAuction.productDetail = productDetail;
   createdAuction.auctioneerID = decoded.id;
-  createdAuction.endDate = new Date(req.body.endDate * 1000);
+  createdAuction.endDate = req.body.endDate
+    ? new Date(req.body.endDate * 1000)
+    : null;
 
   const newAuction = await Auction.create(createdAuction);
+  newAuction.productDetail.productPicture = [];
+  //Format Picture
+
+
+  const productPictureNames = [];
+  if (!req.body.productPicture) {
+    return next(new AppError("Please send productPicure"), 400);
+  }
+  req.body.productPicture.forEach((value, index, arr) => {
+    const pictureName = `${newAuction._id}-${index}.jpeg`;
+    productPictureNames.push(pictureName);
+    newAuction.productDetail.productPicture.push(pictureName);
+  });
+
+  savePictures("productPicture", req.body.productPicture, productPictureNames);
+  // savePicture(req.body.productPicture, "productPicture", "HelloWorkd.jpeg");
+
+  newAuction.save();
 
   //3) Add auction to auctionList
   const user = await User.findById(decoded.id);
@@ -440,7 +455,7 @@ exports.postAuction = catchAsync(async (req, res, next) => {
   user.save();
 
   res.status(201).json({
-    stauts: "sucess",
+    status: "success",
   });
 });
 
@@ -459,8 +474,6 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
   }
 
   const auction = await Auction.findById(auctionId);
-  console.log(auction.bidStep);
-
   if (!auction) {
     return next(new AppError("Auction not found"));
   }
@@ -471,14 +484,26 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
     bidderID: decoded.id,
   }).sort({ biddingDate: -1 });
 
-  console.log(bidHistory);
+  // Get product Picture
+  const productPicture = await Promise.all(
+    getPictures("productPicture", auction.productDetail.productPicture || [])
+  );
+
+  // Get fraud
+  const user = await User.findById(auction.auctioneerID);
+  const isFraud = fraudCalculate(
+    user.totalAuctioned,
+    user.successAuctioned,
+    user.rating
+  );
+
   res.status(200).json({
     status: "success",
     data: {
       productDetail: {
         productName: auction.productDetail.productName,
         description: auction.productDetail.description,
-        productPicture: auction.productDetail.productPicture,
+        productPicture,
       },
       auctioneerID: auction.auctioneerID,
       bidStep: auction.bidStep || defaultMinimumBid(auction.currentPrice),
@@ -489,6 +514,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
 
       myLastBid: bidHistory[0] ? bidHistory[0].biddingPrice : 0,
       isAuctioneer: decoded.id === String(auction.auctioneerID),
+      isFraud,
     },
   });
 });
@@ -584,8 +610,30 @@ exports.postBid = catchAsync(async (req, res, next) => {
   //2 Get AuctionID
   const auctionID = req.params.auction_id;
 
-  //3 Update Auction ขอใส่อันนี้ไปก่อนเดียวไป refactor code ทีหลัง
+  let user = await User.findById(user_id);
   const auction = await Auction.findById(req.params.auction_id);
+
+  // Error Handler
+  // If auction already in 5 minute system user can only bid once
+  if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
+    const bidHistory = await BidHistory.find({
+      bidderID: user._id,
+      auctionID: auction._id,
+      biddingDate: {
+        $gte: auction.endDate + 5 * 60 * 1000,
+      },
+    });
+
+    if (bidHistory.length > 0)
+      return next(new AppError("5 minute auction can be only bid once"));
+  }
+
+  // If postBid after bidding endded
+
+  if (auction.auctionStatus !== "bidding")
+    return next(new AppError("Bid is already ended"));
+
+  //3 Update Auction ขอใส่อันนี้ไปก่อนเดียวไป refactor code ทีหลัง
 
   const bidStep =
     auction.minimumBidPrice | defaultMinimumBid(auction.currentPrice);
@@ -612,7 +660,6 @@ exports.postBid = catchAsync(async (req, res, next) => {
   );
 
   //4) Add to activeBiddingList if user never bid before
-  let user = await User.findById(user_id);
   if (!user.activeBiddingList.includes(req.params.auction_id)) {
     user.activeBiddingList.push(req.params.auction_id);
   }
