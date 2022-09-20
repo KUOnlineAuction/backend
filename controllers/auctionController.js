@@ -595,7 +595,7 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
     const user = await User.findById(value.bidderID);
     formatBidHistory.push({
       bidderName: censoredName(user.displayName),
-      biddingDate: new Date(value.biddingDate).valueOf(),
+      biddingDate: String(new Date(value.biddingDate).getTime()),
       biddingPrice: value.biddingPrice,
     });
 
@@ -708,7 +708,7 @@ exports.postBid = catchAsync(async (req, res, next) => {
     bidderID: user_id,
     auctionID,
     biddingPrice: req.body.biddingPrice,
-    biddingDate: Date.now(),
+    biddingDate: String(Date.now()),
   };
 
   const newBidHistory = await BidHistory.create(bidHistory);
