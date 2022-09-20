@@ -8,7 +8,6 @@ const hpp = require("hpp");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 
-
 const AppError = require("./utils/appError");
 const globalErrorHandler = require("./controllers/errorController");
 
@@ -16,12 +15,10 @@ const globalErrorHandler = require("./controllers/errorController");
 const userRouter = require("./routes/userRoutes");
 const auctionRouter = require("./routes/auctionRoutes");
 const reportRouter = require("./routes/reportRoutes");
-
 const paymentRouter = require("./routes/paymentRoutes");
-
 const reviewRouter = require("./routes/reviewRoutes");
 const shippingRouter = require("./routes/shippingRoutes");
-
+const adminRouter = require("./routes/adminRoutes");
 
 const app = express();
 
@@ -68,7 +65,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Serving static files
-app.use(express.static(`${__dirname}/public`))
+app.use(express.static(`${__dirname}/public`));
 
 // Test middleware
 app.use((req, res, next) => {
@@ -76,12 +73,11 @@ app.use((req, res, next) => {
   next();
 });
 
-
 // Route
 
 // app.use('/test', testRouter);
 app.use("/user", userRouter);
-app.use('/admin', adminRouter);
+app.use("/admin", adminRouter);
 app.use("/auction", auctionRouter);
 app.use("/report", reportRouter);
 app.use("/payment", paymentRouter);

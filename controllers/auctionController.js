@@ -58,12 +58,19 @@ const savePictures = catchAsync(async (folder, picturesBase64, savedName) => {
 
 exports.getSummaryList = catchAsync(async (req, res, next) => {
   //1. Get UserId
-  let decoded = req.cookies.jwt
-    ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
-    : undefined;
-
-  if (!decoded) {
-    decoded = { id: undefined };
+  let token;
+  // 1) Get the token and check if it's exists
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+  let decoded;
+  if (!token) {
+    decoded.id = undefined;
+  } else {
+    decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   }
 
   //2 Qurey Handler
@@ -171,19 +178,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     });
     formatedAuction = auction;
   }
-  // auction = await Promise.all(
-  //   auction.map(async (obj) => {
-  //     const coverPicture = obj.coverPicture[0]
-  //       ? await getPicture("productPicture", obj.coverPicture[0])
-  //       : await getPicture("productPicture", "default.jpeg");
-  //     obj.isWinning = String(obj.currentWinnerID) == decoded.id;
-  //     obj.endDate = String(new Date(obj.endDate).getTime());
-  //     return {
-  //       ...obj,
-  //       coverPicture: coverPicture,
-  //     };
-  //   })
-  // );
+
   formatedAuction = formatedAuction.slice(0, 15);
   formatedAuction = await Promise.all(
     formatedAuction.map(async (obj) => {
@@ -205,13 +200,19 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
 });
 
 exports.getSearch = catchAsync(async (req, res, next) => {
-  // 1) Get current user ID
-  let decoded = req.cookies.jwt
-    ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
-    : undefined;
-
-  if (!decoded) {
-    decoded = { id: undefined };
+  let token;
+  // 1) Get the token and check if it's exists
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+  let decoded;
+  if (!token) {
+    decoded.id = undefined;
+  } else {
+    decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   }
 
   const page = req.query.page ? req.query.page : 1;
