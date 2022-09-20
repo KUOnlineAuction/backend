@@ -51,14 +51,14 @@ exports.signup = catchAsync(async (req, res, next) => {
         let numberValidation = false
         let specialCharValidation = false
         for (let letter of user.password){
-            if (letter == letter.toUpperCase()) {
+            if (specialChar.includes(letter)){
+                specialCharValidation = true
+            } else if (!isNaN(letter)){
+                numberValidation = true
+            } else if (letter == letter.toUpperCase()) {
                 uppercaseValidation = true
             } else if (letter == letter.toLowerCase()){
                 lowercaseValidation = true
-            } else if (!isNaN(letter)){
-                numberValidation = true
-            } else if (specialChar.includes(letter)){
-                specialCharValidation = true
             }
         }
         if(!lowercaseValidation){
@@ -213,14 +213,14 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
         let numberValidation = false
         let specialCharValidation = false
         for (let letter of req.body.password){
-            if (letter == letter.toUpperCase()) {
+            if (specialChar.includes(letter)){
+                specialCharValidation = true
+            } else if (!isNaN(letter)){
+                numberValidation = true
+            } else if (letter == letter.toUpperCase()) {
                 uppercaseValidation = true
             } else if (letter == letter.toLowerCase()){
                 lowercaseValidation = true
-            } else if (!isNaN(letter)){
-                numberValidation = true
-            } else if (specialChar.includes(letter)){
-                specialCharValidation = true
             }
         }
         if(!lowercaseValidation){
