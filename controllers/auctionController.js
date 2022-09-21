@@ -66,7 +66,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
   ) {
     token = req.headers.authorization.split(" ")[1];
   }
-  let decoded;
+  let decoded = {};
   if (!token) {
     decoded.id = undefined;
   } else {
@@ -102,7 +102,9 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
         auctionID: value._id,
         coverPicture: value.productDetail.productPicture[0] || "default.jpg",
         productName: value.productDetail.productName,
-        currentPrice: value.currentPrice,
+        currentPrice: value.currentPrice
+          ? value.currentPrice
+          : value.startingPrice,
         endDate: String(new Date(value.endDate).getTime()),
         isWinning: String(value.currentWinnerID) === decoded.id,
       };
@@ -122,6 +124,9 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
         coverPicture: value.productDetail.productPicture[0] || "default.jpg",
         productName: value.productDetail.productName,
         endDate: String(new Date(value.endDate).getTime()),
+        currentPrice: value.currentPrice
+          ? value.currentPrice
+          : value.startingPrice,
         isWinning: value.currentWinnerID
           ? String(value.currentWinnerID) === decoded.id
           : false,
@@ -140,6 +145,9 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
         coverPicture: value.productDetail.productPicture[0] || "default.jpg",
         productName: value.productDetail.productName,
         endDate: String(new Date(value.endDate).getTime()),
+        currentPricee: value.currentPrice
+          ? value.currentPrice
+          : value.startingPrice,
         isWinning: value.currentWinnerID
           ? String(value.currentWinnerID) === decoded.id
           : false,
@@ -208,7 +216,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
   ) {
     token = req.headers.authorization.split(" ")[1];
   }
-  let decoded;
+  let decoded = {};
   if (!token) {
     decoded.id = undefined;
   } else {
@@ -430,11 +438,19 @@ exports.postFollow = catchAsync(async (req, res, next) => {
 
 // Not Implement store picture yet
 exports.postAuction = catchAsync(async (req, res, next) => {
-  // 1) Get current user ID
-  const decoded = req.user;
-
-  if (!decoded.id) {
-    return next(new AppError("Token not found"), 401);
+  let token;
+  // 1) Get the token and check if it's exists
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+  let decoded = {};
+  if (!token) {
+    decoded.id = undefined;
+  } else {
+    decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   }
 
   //2) Create Auction
@@ -491,14 +507,21 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 });
 
 exports.getAuctionDetail = catchAsync(async (req, res, next) => {
-  //1) Get UserID
-  let decoded = req.cookies.jwt
-    ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
-    : undefined;
-
-  if (!decoded) {
-    decoded = { id: undefined };
+  let token;
+  // 1) Get the token and check if it's exists
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
   }
+  let decoded = {};
+  if (!token) {
+    decoded.id = undefined;
+  } else {
+    decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+  }
+
   const auctionId = req.params.auction_id;
   if (!auctionId) {
     return next(new AppError("Required auction_id query"), 400);
