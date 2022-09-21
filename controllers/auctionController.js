@@ -145,7 +145,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
         coverPicture: value.productDetail.productPicture[0] || "default.jpg",
         productName: value.productDetail.productName,
         endDate: String(new Date(value.endDate).getTime()),
-        currentPricee: value.currentPrice
+        currentPrice: value.currentPrice
           ? value.currentPrice
           : value.startingPrice,
         isWinning: value.currentWinnerID
