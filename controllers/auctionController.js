@@ -145,7 +145,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
         coverPicture: value.productDetail.productPicture[0] || "default.jpg",
         productName: value.productDetail.productName,
         endDate: String(new Date(value.endDate).getTime()),
-        currentPricee: value.currentPrice
+        currentPrice: value.currentPrice
           ? value.currentPrice
           : value.startingPrice,
         isWinning: value.currentWinnerID
@@ -574,14 +574,19 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
 });
 
 exports.getBidHistory = catchAsync(async (req, res, next) => {
-  // 1) Get current user ID
-
-  let decoded = req.cookies.jwt
-    ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
-    : undefined;
-
-  if (!decoded) {
-    decoded = { id: undefined };
+  let token;
+  // 1) Get the token and check if it's exists
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+  let decoded = {};
+  if (!token) {
+    decoded.id = undefined;
+  } else {
+    decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   }
 
   const auction_id = req.params.auction_id;
