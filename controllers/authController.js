@@ -80,7 +80,7 @@ exports.signup = catchAsync(async (req, res, next) => {
 
     // 3) Try sending a verification email
     try{
-    const url = `${req.protocol}://${req.get('host')}/api/user/validateUser/${newUser._id}` // MUST CHANGE TO VERIFICATION EMAIL
+    const url = `${req.protocol}://${req.get('host')}/account/verify/${newUser._id}` // MUST CHANGE TO VERIFICATION EMAIL
     await new Email(newUser,url).sendConfirmEmail()
     } catch (err) {
         await User.deleteOne(newUser)
@@ -178,7 +178,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   // 3) Send it as an email
   const resetURL = `${req.protocol}://${req.get(
     "host"
-  )}/api/user/reset-password?id=${resetToken}`;
+  )}/account/reset-password/${resetToken}`;
 
   await new Email(user, resetURL).sendPasswordReset();
   res.status(200).json({
