@@ -17,12 +17,16 @@ exports.getPayment = catchAsync(async (req, res, next) => {
   const auction_id = req.params.auction_id;
   const billingInfo = await BillingInfo.findOne({ auctionID: auction_id });
   const auction = await Auction.findById(auction_id);
+  const auctioneer = await User.findById(auction.auctioneerID);
   if (!auction) return next(new AppError("Auction not found"));
+  const picture = await getPicture("productPicture", `${auction_id}-0.jpeg`);
   res.status(200).json({
     status: "success",
     data: {
       productName: auction.productDetail.productName,
       winningPrice: billingInfo.winningPrice,
+      auctioneerName: auctioneer.displayName,
+      productPicutre: picture,
     },
   });
 });
@@ -47,7 +51,6 @@ exports.postPayment = catchAsync(async (req, res, next) => {
     true
   );
 
-  console.log(req.body.transferDate);
   const slip = {
     slipPicture: pictureName,
     slipDateTime: new Date(req.body.transferDate * 1000),
