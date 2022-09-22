@@ -8,6 +8,7 @@ const AppError = require("./../utils/appError");
 const { promisify } = require("util");
 const jwt = require("jsonwebtoken");
 const { getPicture, savePicture } = require("./../utils/getPicture");
+const mongoose = require("mongoose");
 
 //Hepler Function
 const defaultMinimumBid = (incomingBid) => {
@@ -55,10 +56,10 @@ const savePictures = catchAsync(async (folder, picturesBase64, savedName) => {
 });
 
 const isValidObjectId = (id) => {
-  if (String(new mongoose.Types.ObjectId(id)) === id) {
-    return true;
-  }
+  if (mongoose.isValidObjectId(id)) return true;
   return false;
+  // if (mongoose.isValidObjectId(id)) return true;
+  // return false;
 };
 
 /////////////////
@@ -534,7 +535,7 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 exports.getAuctionDetail = catchAsync(async (req, res, next) => {
   // Check params
   if (!isValidObjectId(req.params.auction_id))
-    return next("Pleae enter valid mongoDB id", 400);
+    return next(new AppError("Pleae enter valid mongoDB id", 400));
 
   let token;
   // 1) Get the token and check if it's exists
@@ -604,7 +605,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
 
 exports.getBidHistory = catchAsync(async (req, res, next) => {
   if (!isValidObjectId(req.params.auction_id))
-    return next("Pleae enter valid mongoDB id", 400);
+    return next(new AppError("Pleae enter valid mongoDB id", 400));
 
   let token;
   // 1) Get the token and check if it's exists
@@ -678,11 +679,9 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
 
 // Refresh (Finished)
 exports.refresh = catchAsync(async (req, res, next) => {
-
   //Check id params
   if (!isValidObjectId(req.params.auction_id))
-    return next("Pleae enter valid mongoDB id", 400);
-
+    return next(new AppError("Pleae enter valid mongoDB id", 400));
 
   const auction = await Auction.findById(req.params.auction_id);
 
@@ -704,7 +703,7 @@ exports.refresh = catchAsync(async (req, res, next) => {
 exports.postBid = catchAsync(async (req, res, next) => {
   //Check valid id
   if (!isValidObjectId(req.params.auction_id))
-    return next("Pleae enter valid mongoDB id", 400);
+    return next(new AppError("Pleae enter valid mongoDB id", 400));
   // 1) Get current user ID
   const user_id = req.user.id;
   //2 Get AuctionID
