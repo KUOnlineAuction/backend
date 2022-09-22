@@ -6,7 +6,7 @@ const router = express.Router();
 
 router
   .get("/:auction_id", authController.protect, paymentController.getPayment)
-  .post(":/auctionid", authController.protect, paymentController.postPayment);
+  .post("/:auction_id", authController.protect, paymentController.postPayment);
 
 router.post(
   "/createBillingInfo/:auction_id",

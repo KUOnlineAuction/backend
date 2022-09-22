@@ -28,17 +28,42 @@ exports.getPayment = catchAsync(async (req, res, next) => {
 });
 
 exports.postPayment = catchAsync(async (req, res, next) => {
-  const billingInfo = await BillingInfo.findOne({
+  let billingInfo = await BillingInfo.findOne({
     auctionID: req.params.auction_id,
   });
+
+  if (!billingInfo) {
+    return next(new AppError("BillingInfo not found"));
+  }
   const pictureName = `${billingInfo._id}.jpeg`;
 
-  savePicture = (req.params.slipPicture, "slipPicture", pictureName);
+  savePicture(
+    req.body.slipPicture,
+    "slipPicture",
+    pictureName,
+    null,
+    null,
+    null,
+    true
+  );
+
+  console.log(req.body.transferDate);
   const slip = {
     slipPicture: pictureName,
-    slipDateTime: req.body.transferDate,
+    slipDateTime: new Date(req.body.transferDate * 1000),
     slipAmount: req.body.value,
   };
+
+  billingInfo.slip = slip;
+  billingInfo.bidderPhoneNumber = req.body.phoneNumber;
+  billingInfo.receiverName = req.body.bidderName;
+  billingInfo.billingInfoStatus = "waitingConfirmSlip";
+
+  billingInfo.save();
+
+  res.status(201).json({
+    status: "success",
+  });
 });
 
 exports.createBillingInfo = catchAsync(async (req, res, next) => {
@@ -48,6 +73,7 @@ exports.createBillingInfo = catchAsync(async (req, res, next) => {
     auctionID: auction_id,
     winningPrice: auction.currentPrice,
   });
+
   res.status(201).json({
     status: "success",
   });
