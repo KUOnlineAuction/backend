@@ -16,12 +16,9 @@ const globalErrorHandler = require("./controllers/errorController");
 const userRouter = require("./routes/userRoutes");
 const auctionRouter = require("./routes/auctionRoutes");
 const reportRouter = require("./routes/reportRoutes");
-
 const paymentRouter = require("./routes/paymentRoutes");
-
 const reviewRouter = require("./routes/reviewRoutes");
 const shippingRouter = require("./routes/shippingRoutes");
-
 
 const app = express();
 
