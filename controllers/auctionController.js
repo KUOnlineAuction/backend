@@ -58,12 +58,19 @@ const savePictures = catchAsync(async (folder, picturesBase64, savedName) => {
 
 exports.getSummaryList = catchAsync(async (req, res, next) => {
   //1. Get UserId
-  let decoded = req.cookies.jwt
-    ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
-    : undefined;
-
-  if (!decoded) {
-    decoded = { id: undefined };
+  let token;
+  // 1) Get the token and check if it's exists
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+  let decoded = {};
+  if (!token) {
+    decoded.id = undefined;
+  } else {
+    decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   }
 
   //2 Qurey Handler
@@ -95,7 +102,9 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
         auctionID: value._id,
         coverPicture: value.productDetail.productPicture[0] || "default.jpg",
         productName: value.productDetail.productName,
-        currentPrice: value.currentPrice,
+        currentPrice: value.currentPrice
+          ? value.currentPrice
+          : value.startingPrice,
         endDate: String(new Date(value.endDate).getTime()),
         isWinning: String(value.currentWinnerID) === decoded.id,
       };
@@ -115,6 +124,9 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
         coverPicture: value.productDetail.productPicture[0] || "default.jpg",
         productName: value.productDetail.productName,
         endDate: String(new Date(value.endDate).getTime()),
+        currentPrice: value.currentPrice
+          ? value.currentPrice
+          : value.startingPrice,
         isWinning: value.currentWinnerID
           ? String(value.currentWinnerID) === decoded.id
           : false,
@@ -133,6 +145,9 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
         coverPicture: value.productDetail.productPicture[0] || "default.jpg",
         productName: value.productDetail.productName,
         endDate: String(new Date(value.endDate).getTime()),
+        currentPrice: value.currentPrice
+          ? value.currentPrice
+          : value.startingPrice,
         isWinning: value.currentWinnerID
           ? String(value.currentWinnerID) === decoded.id
           : false,
@@ -171,19 +186,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     });
     formatedAuction = auction;
   }
-  // auction = await Promise.all(
-  //   auction.map(async (obj) => {
-  //     const coverPicture = obj.coverPicture[0]
-  //       ? await getPicture("productPicture", obj.coverPicture[0])
-  //       : await getPicture("productPicture", "default.jpeg");
-  //     obj.isWinning = String(obj.currentWinnerID) == decoded.id;
-  //     obj.endDate = String(new Date(obj.endDate).getTime());
-  //     return {
-  //       ...obj,
-  //       coverPicture: coverPicture,
-  //     };
-  //   })
-  // );
+
   formatedAuction = formatedAuction.slice(0, 15);
   formatedAuction = await Promise.all(
     formatedAuction.map(async (obj) => {
@@ -205,13 +208,19 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
 });
 
 exports.getSearch = catchAsync(async (req, res, next) => {
-  // 1) Get current user ID
-  let decoded = req.cookies.jwt
-    ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
-    : undefined;
-
-  if (!decoded) {
-    decoded = { id: undefined };
+  let token;
+  // 1) Get the token and check if it's exists
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+  let decoded = {};
+  if (!token) {
+    decoded.id = undefined;
+  } else {
+    decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   }
 
   const page = req.query.page ? req.query.page : 1;
@@ -429,11 +438,19 @@ exports.postFollow = catchAsync(async (req, res, next) => {
 
 // Not Implement store picture yet
 exports.postAuction = catchAsync(async (req, res, next) => {
-  // 1) Get current user ID
-  const decoded = req.user;
-
-  if (!decoded.id) {
-    return next(new AppError("Token not found"), 401);
+  let token;
+  // 1) Get the token and check if it's exists
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+  let decoded = {};
+  if (!token) {
+    decoded.id = undefined;
+  } else {
+    decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   }
 
   //2) Create Auction
@@ -490,14 +507,21 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 });
 
 exports.getAuctionDetail = catchAsync(async (req, res, next) => {
-  //1) Get UserID
-  let decoded = req.cookies.jwt
-    ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
-    : undefined;
-
-  if (!decoded) {
-    decoded = { id: undefined };
+  let token;
+  // 1) Get the token and check if it's exists
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
   }
+  let decoded = {};
+  if (!token) {
+    decoded.id = undefined;
+  } else {
+    decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+  }
+
   const auctionId = req.params.auction_id;
   if (!auctionId) {
     return next(new AppError("Required auction_id query"), 400);
@@ -550,14 +574,19 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
 });
 
 exports.getBidHistory = catchAsync(async (req, res, next) => {
-  // 1) Get current user ID
-
-  let decoded = req.cookies.jwt
-    ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
-    : undefined;
-
-  if (!decoded) {
-    decoded = { id: undefined };
+  let token;
+  // 1) Get the token and check if it's exists
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+  let decoded = {};
+  if (!token) {
+    decoded.id = undefined;
+  } else {
+    decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   }
 
   const auction_id = req.params.auction_id;
@@ -594,7 +623,7 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
     const user = await User.findById(value.bidderID);
     formatBidHistory.push({
       bidderName: censoredName(user.displayName),
-      biddingDate: new Date(value.biddingDate).valueOf(),
+      biddingDate: String(new Date(value.biddingDate).getTime()),
       biddingPrice: value.biddingPrice,
     });
 
@@ -707,7 +736,7 @@ exports.postBid = catchAsync(async (req, res, next) => {
     bidderID: user_id,
     auctionID,
     biddingPrice: req.body.biddingPrice,
-    biddingDate: Date.now(),
+    biddingDate: String(Date.now()),
   };
 
   const newBidHistory = await BidHistory.create(bidHistory);
