@@ -85,6 +85,13 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
   let auction;
   let formatedAuction = [];
   if (filter === "recent_bidding") {
+    if (!decoded.id)
+      return next(
+        new AppError(
+          "You are not logged in, please log in to gain access.",
+          401
+        )
+      );
     const bidHistory = await BidHistory.find({ bidderID: decoded.id }).sort({
       biddingDate: -1,
     });
@@ -116,6 +123,14 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     const user = await User.findById(decoded.id).populate({
       path: "followingList",
     });
+
+    if (!decoded.id)
+      return next(
+        new AppError(
+          "You are not logged in, please log in to gain access.",
+          401
+        )
+      );
 
     auction = user.followingList;
     auction.forEach((value) => {
