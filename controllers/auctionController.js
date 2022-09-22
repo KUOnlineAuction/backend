@@ -54,6 +54,13 @@ const savePictures = catchAsync(async (folder, picturesBase64, savedName) => {
   });
 });
 
+const isValidObjectId = (id) => {
+  if (String(new mongoose.Types.ObjectId(id)) === id) {
+    return true;
+  }
+  return false;
+};
+
 /////////////////
 
 exports.getSummaryList = catchAsync(async (req, res, next) => {
@@ -356,6 +363,9 @@ exports.getSearch = catchAsync(async (req, res, next) => {
 });
 
 exports.getFollow = catchAsync(async (req, res, next) => {
+  //Check auction_id is valid?
+  if (!isValidObjectId(req.params.auction_id))
+    return next("Pleae enter valid mongoDB id", 400);
   // 1) Get current user ID
   const decoded = req.user;
 
@@ -522,6 +532,10 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 });
 
 exports.getAuctionDetail = catchAsync(async (req, res, next) => {
+  // Check params
+  if (!isValidObjectId(req.params.auction_id))
+    return next("Pleae enter valid mongoDB id", 400);
+
   let token;
   // 1) Get the token and check if it's exists
   if (
@@ -589,6 +603,9 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
 });
 
 exports.getBidHistory = catchAsync(async (req, res, next) => {
+  if (!isValidObjectId(req.params.auction_id))
+    return next("Pleae enter valid mongoDB id", 400);
+
   let token;
   // 1) Get the token and check if it's exists
   if (
@@ -661,6 +678,12 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
 
 // Refresh (Finished)
 exports.refresh = catchAsync(async (req, res, next) => {
+
+  //Check id params
+  if (!isValidObjectId(req.params.auction_id))
+    return next("Pleae enter valid mongoDB id", 400);
+
+
   const auction = await Auction.findById(req.params.auction_id);
 
   if (!auction) {
@@ -679,6 +702,9 @@ exports.refresh = catchAsync(async (req, res, next) => {
 });
 
 exports.postBid = catchAsync(async (req, res, next) => {
+  //Check valid id
+  if (!isValidObjectId(req.params.auction_id))
+    return next("Pleae enter valid mongoDB id", 400);
   // 1) Get current user ID
   const user_id = req.user.id;
   //2 Get AuctionID
