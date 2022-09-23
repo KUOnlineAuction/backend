@@ -529,6 +529,9 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 
   res.status(201).json({
     status: "success",
+    data: {
+      auctionID: newAuction._id,
+    },
   });
 });
 
