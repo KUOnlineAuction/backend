@@ -39,10 +39,10 @@ const fraudCalculate = (totalAuctioned, successAuctioned, rating) => {
   return false;
 };
 
-const getPictures = (folder, pictures) => {
+const getPictures = (folder, pictures, width = 1000, height = 1000) => {
   let arrayOfBase64 = [];
   for (const pic of pictures) {
-    const base64 = getPicture(folder, `${pic}`);
+    const base64 = getPicture(folder, `${pic}`, width, height);
     arrayOfBase64.push(base64);
   }
 
@@ -215,8 +215,8 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     formatedAuction.map(async (obj) => {
       console.log(formatedAuction);
       const coverPicture = obj.coverPicture
-        ? await getPicture("productPicture", obj.coverPicture)
-        : await getPicture("productPicture", "default.jpeg");
+        ? await getPicture("productPicture", obj.coverPicture,300,300)
+        : await getPicture("productPicture", "default.jpeg",300,300);
       return {
         ...obj,
         coverPicture: coverPicture,
@@ -319,8 +319,8 @@ exports.getSearch = catchAsync(async (req, res, next) => {
   auction = await Promise.all(
     auction.map(async (obj) => {
       const coverPicture = obj.coverPicture[0]
-        ? await getPicture("productPicture", obj.coverPicture[0])
-        : await getPicture("productPicture", "default.jpeg");
+        ? await getPicture("productPicture", obj.coverPicture[0],300,300)
+        : await getPicture("productPicture", "default.jpeg",300,300);
       obj.isWinning = String(obj.currentWinnerID) == decoded.id;
       obj.endDate = String(new Date(obj.endDate).getTime());
       return {
