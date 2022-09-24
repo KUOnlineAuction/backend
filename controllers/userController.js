@@ -80,12 +80,12 @@ exports.myProfile = catchAsync(async (req, res, next) => {
 exports.editProfle = catchAsync(async (req, res, next) => {
   // 1) find the user
   const user = await User.findById(req.user.id);
-
+  let filename;
   // 2) update the provided feilds
   // 2.1) update the profile picture
 
   if (req.body.profilePicture) {
-    const filename = `${req.user.id}.jpg`;
+    filename = `${req.user.id}.jpeg`;
     // await savePicture(req.body.profilePicture, 'profilePicture', filename, 1000,1000,quality=80)
     await savePicture(
       req.body.profilePicture,
@@ -110,6 +110,7 @@ exports.editProfle = catchAsync(async (req, res, next) => {
     if (req.body[el]) {
       user[el] = req.body[el];
     }
+    user.profilePicture = filename
   }
   await user.save();
   // await user.save()

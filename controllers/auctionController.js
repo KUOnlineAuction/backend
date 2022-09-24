@@ -119,7 +119,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     auction.forEach((value) => {
       let tempVal = {
         auctionID: value._id,
-        coverPicture: value.productDetail.productPicture[0] || "default.jpg",
+        coverPicture: value.productDetail.productPicture[0] || "default.jpeg",
         productName: value.productDetail.productName,
         currentPrice: value.currentPrice
           ? value.currentPrice
@@ -148,7 +148,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     auction.forEach((value) => {
       value = {
         auctionID: value._id,
-        coverPicture: value.productDetail.productPicture[0] || "default.jpg",
+        coverPicture: value.productDetail.productPicture[0] || "default.jpeg",
         productName: value.productDetail.productName,
         endDate: String(new Date(value.endDate).getTime()),
         currentPrice: value.currentPrice
@@ -171,7 +171,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
       ];
       value = {
         auctionID: value._id,
-        coverPicture: value.productDetail.productPicture[0] || "default.jpg",
+        coverPicture: value.productDetail.productPicture[0] || "default.jpeg",
         productName: value.productDetail.productName,
         endDate: String(new Date(value.endDate).getTime()),
         currentPrice: value.currentPrice
