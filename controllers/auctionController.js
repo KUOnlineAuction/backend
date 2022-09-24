@@ -296,7 +296,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
     auction = await Auction.aggregate([
       { $unwind: "$productDetail" },
       {
-        $match: { "productDetail.category": category},
+        $match: { "productDetail.category": category },
       },
       {
         $project: {
@@ -515,7 +515,7 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 
   const productPictureNames = [];
   if (!req.body.productPicture) {
-    return next(new AppError("Please send productPicure"), 400);
+    return next(new AppError("Please send productPicture"), 400);
   }
   req.body.productPicture.forEach((value, index, arr) => {
     const pictureName = `${newAuction._id}-${index}.jpeg`;
