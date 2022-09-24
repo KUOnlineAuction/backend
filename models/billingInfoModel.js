@@ -111,6 +111,16 @@ const billingInfoSchema = new mongoose.Schema({
     enum: billingInfoStatusEnum,
     default: "waitingForPayment",
   },
+  deliverDeadlineBroken: {
+    type: Boolean,
+    default: false
+  },
+  deliverDeadline:{
+    type: Date
+  },
+  confirmItemRecieveDeadline:{
+    type: Date
+  }
 });
 
 const BillingInfo = mongoose.model("BillingInfo", billingInfoSchema);
