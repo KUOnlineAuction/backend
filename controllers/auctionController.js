@@ -110,7 +110,11 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
       (v, i, a) => a.indexOf(v) === i
     );
 
-    auction = await Auction.find({ _id: { $in: distinctAuctionIDs } });
+    auction = await Auction.find({
+      _id: { $in: distinctAuctionIDs },
+      auctionStatus: "bidding",
+      endDate: { $gt: Date.now() },
+    });
 
     auction.forEach((value) => {
       let tempVal = {
@@ -158,7 +162,9 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     });
   } else if (filter === "popular") {
     // Serach ตามจำนวน bidder
-    auction = await Auction.find().populate({ path: "bidHistory" });
+    auction = await Auction.find({ endDate: { $gt: Date.now() } }).populate({
+      path: "bidHistory",
+    });
     Array.from(auction, (value) => {
       const distinctBidder = [
         ...new Set(value.bidHistory.map((x) => String(x.bidderID))),
@@ -182,6 +188,9 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
   } else if (filter === "ending_soon") {
     // Search ตาม Auction ใกล้หมดเวลา
     auction = await Auction.aggregate([
+      {
+        $match: { endDate: { $gt: Date.now() } },
+      },
       {
         $project: {
           auctionID: "$_id",
@@ -215,8 +224,8 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     formatedAuction.map(async (obj) => {
       console.log(formatedAuction);
       const coverPicture = obj.coverPicture
-        ? await getPicture("productPicture", obj.coverPicture,300,300)
-        : await getPicture("productPicture", "default.jpeg",300,300);
+        ? await getPicture("productPicture", obj.coverPicture, 300, 300)
+        : await getPicture("productPicture", "default.jpeg", 300, 300);
       return {
         ...obj,
         coverPicture: coverPicture,
@@ -287,7 +296,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
     auction = await Auction.aggregate([
       { $unwind: "$productDetail" },
       {
-        $match: { "productDetail.category": category },
+        $match: { "productDetail.category": category},
       },
       {
         $project: {
@@ -319,8 +328,8 @@ exports.getSearch = catchAsync(async (req, res, next) => {
   auction = await Promise.all(
     auction.map(async (obj) => {
       const coverPicture = obj.coverPicture[0]
-        ? await getPicture("productPicture", obj.coverPicture[0],300,300)
-        : await getPicture("productPicture", "default.jpeg",300,300);
+        ? await getPicture("productPicture", obj.coverPicture[0], 300, 300)
+        : await getPicture("productPicture", "default.jpeg", 300, 300);
       obj.isWinning = String(obj.currentWinnerID) == decoded.id;
       obj.endDate = String(new Date(obj.endDate).getTime());
       return {
