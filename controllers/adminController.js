@@ -7,6 +7,8 @@ const BillingInfo = require('./../models/billingInfoModel');
 const Auction = require('./../models/auctionModel')
 const {getPicture} = require('./../utils/getPicture')
 
+const daysToDeliver = 5
+
 exports.getBlacklist = catchAsync( async (req, res, next) => {
     const blacklistedUsers = await User.aggregate([
         {
@@ -329,6 +331,7 @@ exports.confirmTransac = catchAsync( async (req, res, next) => {
             return next(new AppError("The billing info status doesn't match the current request",400))
         }
         billingInfo.billingInfoStatus = 'waitingForShipping'
+        billingInfo.deliverDeadline = Date.now() + daysToDeliver * 1000 * 60 * 60 * 24
         billingInfo.save()
     }
     if(req.body.confirm === "payment"){

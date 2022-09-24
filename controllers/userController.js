@@ -239,6 +239,7 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
     return next(new AppError("The user does not exists", 400));
   }
 
+
   // 2) get the badges
   let badgeNames = [];
   for (let el of user.badge) {
@@ -301,6 +302,19 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
     el.productDetail._id = undefined;
     el.productDetail = undefined;
   }
+
+    let auctions = await Auction.find({
+        '_id': { $in : queryString}
+    }).select('productDetail endDate currentPrice').sort('endDate').limit(15).lean()
+    
+    for(let el of auctions){
+        // comment next line if picture hasn't been implemented
+        el.productPicture = await getPicture('auctionPicture', el.productDetail.productPicture[0])
+        el.productName = el.productDetail.productName
+        el.productDetail._id = undefined
+        el.productDetail = undefined
+    }
+
 
   user.activeAuctionList = auctions;
 
