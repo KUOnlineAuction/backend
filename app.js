@@ -5,7 +5,8 @@ const helmet = require("helmet");
 const mongoSanitize = require("express-mongo-sanitize");
 const xss = require("xss-clean");
 const hpp = require("hpp");
-const cors = require('cors');
+const cookieParser = require("cookie-parser");
+const cors = require("cors");
 
 const AppError = require("./utils/appError");
 const globalErrorHandler = require("./controllers/errorController");
@@ -14,11 +15,10 @@ const globalErrorHandler = require("./controllers/errorController");
 const userRouter = require("./routes/userRoutes");
 const auctionRouter = require("./routes/auctionRoutes");
 const reportRouter = require("./routes/reportRoutes");
-
 const paymentRouter = require("./routes/paymentRoutes");
-
 const reviewRouter = require("./routes/reviewRoutes");
-const shippingRouter = require('./routes/shippingRoutes');
+const shippingRouter = require("./routes/shippingRoutes");
+const adminRouter = require("./routes/adminRoutes");
 
 const app = express();
 
@@ -32,12 +32,12 @@ if (process.env.NODE_ENV === "development") {
 }
 
 // Limit request from the same API
-const limiter = rateLimit({
-  max: 100,
-  windowMs: 60 * 60 * 1000,
-  message: "Too many request from this IP, please try again in an hour",
-});
-app.use("/", limiter);
+// const limiter = rateLimit({
+//   max: 100,
+//   windowMs: 60 * 60 * 1000,
+//   message: "Too many request from this IP, please try again in an hour",
+// });
+// app.use("/", limiter);
 
 // Body parser, reading data from body into req.body
 
@@ -57,28 +57,27 @@ app.use(
 );
 
 //CORS!!!!!!!!!!
-const corsOptions ={
-  origin:'http://localhost:3000', 
-  credentials:true,            //access-control-allow-credentials:true
-  optionSuccessStatus:200
-}
+const corsOptions = {
+  origin: "http://localhost:3000",
+  credentials: true, //access-control-allow-credentials:true
+  optionSuccessStatus: 200,
+};
 app.use(cors(corsOptions));
 
 // Serving static files
-app.use(express.static(`${__dirname}/public`))
+app.use(express.static(`${__dirname}/public`));
 
 // Test middleware
-app.use((req,res,next)=>{
-    req.requestTime = new Date().toISOString();
-    next();
-  })
-);
+app.use((req, res, next) => {
+  req.requestTime = new Date().toISOString();
+  next();
+});
 
 // Route
 
 // app.use('/test', testRouter);
 app.use("/user", userRouter);
-app.use('/admin', adminRouter);
+app.use("/admin", adminRouter);
 app.use("/auction", auctionRouter);
 app.use("/report", reportRouter);
 app.use("/payment", paymentRouter);

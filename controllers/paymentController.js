@@ -17,28 +17,56 @@ exports.getPayment = catchAsync(async (req, res, next) => {
   const auction_id = req.params.auction_id;
   const billingInfo = await BillingInfo.findOne({ auctionID: auction_id });
   const auction = await Auction.findById(auction_id);
+  const auctioneer = await User.findById(auction.auctioneerID);
   if (!auction) return next(new AppError("Auction not found"));
+  const picture = await getPicture("productPicture", `${auction_id}-0.jpeg`);
   res.status(200).json({
     status: "success",
     data: {
       productName: auction.productDetail.productName,
       winningPrice: billingInfo.winningPrice,
+      auctioneerName: auctioneer.displayName,
+      productPicutre: picture,
     },
   });
 });
 
 exports.postPayment = catchAsync(async (req, res, next) => {
-  const billingInfo = await BillingInfo.findOne({
+  let billingInfo = await BillingInfo.findOne({
     auctionID: req.params.auction_id,
   });
+
+  if (!billingInfo) {
+    return next(new AppError("BillingInfo not found"));
+  }
   const pictureName = `${billingInfo._id}.jpeg`;
 
-  savePicture = (req.params.slipPicture, "slipPicture", pictureName);
+  savePicture(
+    req.body.slipPicture,
+    "slipPicture",
+    pictureName,
+    null,
+    null,
+    null,
+    true
+  );
+
   const slip = {
     slipPicture: pictureName,
-    slipDateTime: req.body.transferDate,
+    slipDateTime: new Date(req.body.transferDate * 1000),
     slipAmount: req.body.value,
   };
+
+  billingInfo.slip = slip;
+  billingInfo.bidderPhoneNumber = req.body.phoneNumber;
+  billingInfo.receiverName = req.body.bidderName;
+  billingInfo.billingInfoStatus = "waitingConfirmSlip";
+
+  billingInfo.save();
+
+  res.status(201).json({
+    status: "success",
+  });
 });
 
 exports.createBillingInfo = catchAsync(async (req, res, next) => {
@@ -48,6 +76,7 @@ exports.createBillingInfo = catchAsync(async (req, res, next) => {
     auctionID: auction_id,
     winningPrice: auction.currentPrice,
   });
+
   res.status(201).json({
     status: "success",
   });
