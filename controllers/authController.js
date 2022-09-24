@@ -202,9 +202,9 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
     return next(new AppError("Token is invalid or expired", 400));
   }
 
-    if(req.body.password.length<10){
+    if(req.body.newPassword.length<10){
         return next(new AppError("The password is too short (at least 10 character)",400))
-    } else if (req.body.password.length>30){
+    } else if (req.body.newPassword.length>30){
         return next(new AppError("The password is too long (at most 30 character)",400))
     } else {
         const specialChar = "!@#$%^&*()_-+=[]{}|;:’”,.<>/?~"
@@ -212,7 +212,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
         let uppercaseValidation = false
         let numberValidation = false
         let specialCharValidation = false
-        for (let letter of req.body.password){
+        for (let letter of req.body.newPassword){
             if (specialChar.includes(letter)){
                 specialCharValidation = true
             } else if (!isNaN(letter)){
