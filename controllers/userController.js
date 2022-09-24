@@ -303,7 +303,7 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
     el.productDetail = undefined;
   }
 
-    let auctions = await Auction.find({
+    auctions = await Auction.find({
         '_id': { $in : queryString}
     }).select('productDetail endDate currentPrice').sort('endDate').limit(15).lean()
     
