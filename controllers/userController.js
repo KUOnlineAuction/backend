@@ -223,7 +223,7 @@ exports.aucProfile = catchAsync (async (req, res, next) =>{
 
     let auctions = await Auction.find({
         '_id': { $in : queryString}
-    }).select('productDetail endDate currentPrice').sort('endDate').lean()
+    }).select('productDetail endDate currentPrice').sort('endDate').limit(15).lean()
     
     for(let el of auctions){
         // comment next line if picture hasn't been implemented
