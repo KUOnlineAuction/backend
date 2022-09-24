@@ -8,6 +8,7 @@ const AppError = require("./../utils/appError");
 const { promisify } = require("util");
 const jwt = require("jsonwebtoken");
 const { getPicture, savePicture } = require("./../utils/getPicture");
+const mongoose = require("mongoose");
 
 //Hepler Function
 const defaultMinimumBid = (incomingBid) => {
@@ -38,10 +39,10 @@ const fraudCalculate = (totalAuctioned, successAuctioned, rating) => {
   return false;
 };
 
-const getPictures = (folder, pictures) => {
+const getPictures = (folder, pictures, width = 1000, height = 1000) => {
   let arrayOfBase64 = [];
   for (const pic of pictures) {
-    const base64 = getPicture(folder, `${pic}`);
+    const base64 = getPicture(folder, `${pic}`, width, height);
     arrayOfBase64.push(base64);
   }
 
@@ -53,6 +54,13 @@ const savePictures = catchAsync(async (folder, picturesBase64, savedName) => {
     savePicture(value, folder, savedName[index]);
   });
 });
+
+const isValidObjectId = (id) => {
+  if (mongoose.isValidObjectId(id)) return true;
+  return false;
+  // if (mongoose.isValidObjectId(id)) return true;
+  // return false;
+};
 
 /////////////////
 
@@ -85,6 +93,13 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
   let auction;
   let formatedAuction = [];
   if (filter === "recent_bidding") {
+    if (!decoded.id)
+      return next(
+        new AppError(
+          "You are not logged in, please log in to gain access.",
+          401
+        )
+      );
     const bidHistory = await BidHistory.find({ bidderID: decoded.id }).sort({
       biddingDate: -1,
     });
@@ -116,6 +131,14 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     const user = await User.findById(decoded.id).populate({
       path: "followingList",
     });
+
+    if (!decoded.id)
+      return next(
+        new AppError(
+          "You are not logged in, please log in to gain access.",
+          401
+        )
+      );
 
     auction = user.followingList;
     auction.forEach((value) => {
@@ -192,8 +215,8 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     formatedAuction.map(async (obj) => {
       console.log(formatedAuction);
       const coverPicture = obj.coverPicture
-        ? await getPicture("productPicture", obj.coverPicture)
-        : await getPicture("productPicture", "default.jpeg");
+        ? await getPicture("productPicture", obj.coverPicture,300,300)
+        : await getPicture("productPicture", "default.jpeg",300,300);
       return {
         ...obj,
         coverPicture: coverPicture,
@@ -202,7 +225,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
   );
 
   res.status(200).json({
-    stauts: "success",
+    status: "success",
     data: formatedAuction,
   });
 });
@@ -296,8 +319,8 @@ exports.getSearch = catchAsync(async (req, res, next) => {
   auction = await Promise.all(
     auction.map(async (obj) => {
       const coverPicture = obj.coverPicture[0]
-        ? await getPicture("productPicture", obj.coverPicture[0])
-        : await getPicture("productPicture", "default.jpeg");
+        ? await getPicture("productPicture", obj.coverPicture[0],300,300)
+        : await getPicture("productPicture", "default.jpeg",300,300);
       obj.isWinning = String(obj.currentWinnerID) == decoded.id;
       obj.endDate = String(new Date(obj.endDate).getTime());
       return {
@@ -341,6 +364,9 @@ exports.getSearch = catchAsync(async (req, res, next) => {
 });
 
 exports.getFollow = catchAsync(async (req, res, next) => {
+  //Check auction_id is valid?
+  if (!isValidObjectId(req.params.auction_id))
+    return next("Pleae enter valid mongoDB id", 400);
   // 1) Get current user ID
   const decoded = req.user;
 
@@ -503,10 +529,17 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 
   res.status(201).json({
     status: "success",
+    data: {
+      auctionID: newAuction._id,
+    },
   });
 });
 
 exports.getAuctionDetail = catchAsync(async (req, res, next) => {
+  // Check params
+  if (!isValidObjectId(req.params.auction_id))
+    return next(new AppError("Pleae enter valid mongoDB id", 400));
+
   let token;
   // 1) Get the token and check if it's exists
   if (
@@ -574,6 +607,9 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
 });
 
 exports.getBidHistory = catchAsync(async (req, res, next) => {
+  if (!isValidObjectId(req.params.auction_id))
+    return next(new AppError("Pleae enter valid mongoDB id", 400));
+
   let token;
   // 1) Get the token and check if it's exists
   if (
@@ -646,6 +682,10 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
 
 // Refresh (Finished)
 exports.refresh = catchAsync(async (req, res, next) => {
+  //Check id params
+  if (!isValidObjectId(req.params.auction_id))
+    return next(new AppError("Pleae enter valid mongoDB id", 400));
+
   const auction = await Auction.findById(req.params.auction_id);
 
   if (!auction) {
@@ -664,6 +704,9 @@ exports.refresh = catchAsync(async (req, res, next) => {
 });
 
 exports.postBid = catchAsync(async (req, res, next) => {
+  //Check valid id
+  if (!isValidObjectId(req.params.auction_id))
+    return next(new AppError("Pleae enter valid mongoDB id", 400));
   // 1) Get current user ID
   const user_id = req.user.id;
   //2 Get AuctionID

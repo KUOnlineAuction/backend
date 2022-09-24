@@ -103,6 +103,9 @@ const billingInfoSchema = new mongoose.Schema({
     type: String,
     requried: [true, "A billing info must has its owner's address."],
   },
+  bidderPhoneNumber: {
+    type: String,
+  },
   billingBankAccount: billingBankAccountSchema,
   slip: slipSchema,
   deliverInfo: deliverInfoSchema,
