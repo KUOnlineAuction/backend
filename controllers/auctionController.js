@@ -8,13 +8,14 @@ const AppError = require("./../utils/appError");
 const { promisify } = require("util");
 const jwt = require("jsonwebtoken");
 const { getPicture, savePicture } = require("./../utils/getPicture");
+const mongoose = require("mongoose");
 
 //Hepler Function
 const defaultMinimumBid = (incomingBid) => {
   const digitCount = Math.ceil(Math.log10(incomingBid));
   return incomingBid >= 5000
     ? Math.pow(10, digitCount - 3) *
-    Math.ceil(incomingBid / Math.pow(10, digitCount - 1))
+        Math.ceil(incomingBid / Math.pow(10, digitCount - 1))
     : 50;
 };
 
@@ -38,10 +39,10 @@ const fraudCalculate = (totalAuctioned, successAuctioned, rating) => {
   return false;
 };
 
-const getPictures = (folder, pictures) => {
+const getPictures = (folder, pictures, width = 1000, height = 1000) => {
   let arrayOfBase64 = [];
   for (const pic of pictures) {
-    const base64 = getPicture(folder, `${pic}`);
+    const base64 = getPicture(folder, `${pic}`, width, height);
     arrayOfBase64.push(base64);
   }
 
@@ -54,16 +55,30 @@ const savePictures = catchAsync(async (folder, picturesBase64, savedName) => {
   });
 });
 
+const isValidObjectId = (id) => {
+  if (mongoose.isValidObjectId(id)) return true;
+  return false;
+  // if (mongoose.isValidObjectId(id)) return true;
+  // return false;
+};
+
 /////////////////
 
 exports.getSummaryList = catchAsync(async (req, res, next) => {
   //1. Get UserId
-  let decoded = req.cookies.jwt
-    ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
-    : undefined;
-
-  if (!decoded) {
-    decoded = { id: undefined };
+  let token;
+  // 1) Get the token and check if it's exists
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+  let decoded = {};
+  if (!token) {
+    decoded.id = undefined;
+  } else {
+    decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   }
 
   //2 Qurey Handler
@@ -78,6 +93,13 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
   let auction;
   let formatedAuction = [];
   if (filter === "recent_bidding") {
+    if (!decoded.id)
+      return next(
+        new AppError(
+          "You are not logged in, please log in to gain access.",
+          401
+        )
+      );
     const bidHistory = await BidHistory.find({ bidderID: decoded.id }).sort({
       biddingDate: -1,
     });
@@ -88,14 +110,20 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
       (v, i, a) => a.indexOf(v) === i
     );
 
-    auction = await Auction.find({ _id: { $in: distinctAuctionIDs } });
+    auction = await Auction.find({
+      _id: { $in: distinctAuctionIDs },
+      auctionStatus: "bidding",
+      endDate: { $gt: Date.now() },
+    });
 
     auction.forEach((value) => {
       let tempVal = {
         auctionID: value._id,
         coverPicture: value.productDetail.productPicture[0] || "default.jpg",
         productName: value.productDetail.productName,
-        currentPrice: value.currentPrice,
+        currentPrice: value.currentPrice
+          ? value.currentPrice
+          : value.startingPrice,
         endDate: String(new Date(value.endDate).getTime()),
         isWinning: String(value.currentWinnerID) === decoded.id,
       };
@@ -108,6 +136,14 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
       path: "followingList",
     });
 
+    if (!decoded.id)
+      return next(
+        new AppError(
+          "You are not logged in, please log in to gain access.",
+          401
+        )
+      );
+
     auction = user.followingList;
     auction.forEach((value) => {
       value = {
@@ -115,6 +151,9 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
         coverPicture: value.productDetail.productPicture[0] || "default.jpg",
         productName: value.productDetail.productName,
         endDate: String(new Date(value.endDate).getTime()),
+        currentPrice: value.currentPrice
+          ? value.currentPrice
+          : value.startingPrice,
         isWinning: value.currentWinnerID
           ? String(value.currentWinnerID) === decoded.id
           : false,
@@ -123,7 +162,9 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     });
   } else if (filter === "popular") {
     // Serach ตามจำนวน bidder
-    auction = await Auction.find().populate({ path: "bidHistory" });
+    auction = await Auction.find({ endDate: { $gt: Date.now() } }).populate({
+      path: "bidHistory",
+    });
     Array.from(auction, (value) => {
       const distinctBidder = [
         ...new Set(value.bidHistory.map((x) => String(x.bidderID))),
@@ -133,6 +174,9 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
         coverPicture: value.productDetail.productPicture[0] || "default.jpg",
         productName: value.productDetail.productName,
         endDate: String(new Date(value.endDate).getTime()),
+        currentPrice: value.currentPrice
+          ? value.currentPrice
+          : value.startingPrice,
         isWinning: value.currentWinnerID
           ? String(value.currentWinnerID) === decoded.id
           : false,
@@ -144,6 +188,9 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
   } else if (filter === "ending_soon") {
     // Search ตาม Auction ใกล้หมดเวลา
     auction = await Auction.aggregate([
+      {
+        $match: { endDate: { $gt: Date.now() } },
+      },
       {
         $project: {
           auctionID: "$_id",
@@ -166,24 +213,46 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     auction.forEach((value) => {
       delete value._id;
       delete value.timeRemaining;
-      value.coverPicture = value.coverPicture[0] || "default.jpg";
+      value.coverPicture = value.coverPicture[0] || "default.jpeg";
+      value.endDate = String(new Date(value.endDate).getTime());
     });
     formatedAuction = auction;
   }
+
+  formatedAuction = formatedAuction.slice(0, 15);
+  formatedAuction = await Promise.all(
+    formatedAuction.map(async (obj) => {
+      console.log(formatedAuction);
+      const coverPicture = obj.coverPicture
+        ? await getPicture("productPicture", obj.coverPicture, 300, 300)
+        : await getPicture("productPicture", "default.jpeg", 300, 300);
+      return {
+        ...obj,
+        coverPicture: coverPicture,
+      };
+    })
+  );
+
   res.status(200).json({
-    stauts: "success",
-    data: formatedAuction.slice(0, 15),
+    status: "success",
+    data: formatedAuction,
   });
 });
 
 exports.getSearch = catchAsync(async (req, res, next) => {
-  // 1) Get current user ID
-  let decoded = req.cookies.jwt
-    ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
-    : undefined;
-
-  if (!decoded) {
-    decoded = { id: undefined };
+  let token;
+  // 1) Get the token and check if it's exists
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+  let decoded = {};
+  if (!token) {
+    decoded.id = undefined;
+  } else {
+    decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   }
 
   const page = req.query.page ? req.query.page : 1;
@@ -227,7 +296,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
     auction = await Auction.aggregate([
       { $unwind: "$productDetail" },
       {
-        $match: { "productDetail.category": category },
+        $match: { "productDetail.category": category},
       },
       {
         $project: {
@@ -256,15 +325,19 @@ exports.getSearch = catchAsync(async (req, res, next) => {
     ]);
   }
 
-  // แก้ isWinning
-  auction.forEach(async (value, index, arr) => {
-    value.isWinning = String(value.currentWinnerID) == decoded.id;
-    value.coverPicture = value.coverPicture[0]
-      ? await getPicture("productPicture", value.coverPicture[0])
-      : await getPicture("productPicture", "default.jpeg");
-
-  });
-
+  auction = await Promise.all(
+    auction.map(async (obj) => {
+      const coverPicture = obj.coverPicture[0]
+        ? await getPicture("productPicture", obj.coverPicture[0], 300, 300)
+        : await getPicture("productPicture", "default.jpeg", 300, 300);
+      obj.isWinning = String(obj.currentWinnerID) == decoded.id;
+      obj.endDate = String(new Date(obj.endDate).getTime());
+      return {
+        ...obj,
+        coverPicture: coverPicture,
+      };
+    })
+  );
 
   // 2) Sorting
   if (sort === "highest_bid") {
@@ -278,10 +351,10 @@ exports.getSearch = catchAsync(async (req, res, next) => {
   } else {
     auction.sort((a, b) => (a.currentPrice > b.currentPrice ? -1 : 1));
   }
+
   let totalResult = auction.length;
   let paginateAuction = paginate(auction, 35, page);
   paginateAuction.forEach((value) => {
-    value.endDate = String(new Date(value.endDate).getTime());
     delete value.timeRemaining;
     delete value._id;
     delete value.currentWinnerID;
@@ -300,6 +373,9 @@ exports.getSearch = catchAsync(async (req, res, next) => {
 });
 
 exports.getFollow = catchAsync(async (req, res, next) => {
+  //Check auction_id is valid?
+  if (!isValidObjectId(req.params.auction_id))
+    return next("Pleae enter valid mongoDB id", 400);
   // 1) Get current user ID
   const decoded = req.user;
 
@@ -397,15 +473,22 @@ exports.postFollow = catchAsync(async (req, res, next) => {
 
 // Not Implement store picture yet
 exports.postAuction = catchAsync(async (req, res, next) => {
-  // 1) Get current user ID
-  const decoded = req.user;
-
-  if (!decoded.id) {
-    return next(new AppError("Token not found"), 401);
+  let token;
+  // 1) Get the token and check if it's exists
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+  let decoded = {};
+  if (!token) {
+    decoded.id = undefined;
+  } else {
+    decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   }
 
   //2) Create Auction
-
 
   const createdAuction = { ...req.body };
   const productDetail = {
@@ -423,13 +506,12 @@ exports.postAuction = catchAsync(async (req, res, next) => {
   createdAuction.productDetail = productDetail;
   createdAuction.auctioneerID = decoded.id;
   createdAuction.endDate = req.body.endDate
-    ? new Date(req.body.endDate * 1000)
+    ? new Date(req.body.endDate * 1)
     : null;
 
   const newAuction = await Auction.create(createdAuction);
   newAuction.productDetail.productPicture = [];
   //Format Picture
-
 
   const productPictureNames = [];
   if (!req.body.productPicture) {
@@ -456,18 +538,32 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 
   res.status(201).json({
     status: "success",
+    data: {
+      auctionID: newAuction._id,
+    },
   });
 });
 
 exports.getAuctionDetail = catchAsync(async (req, res, next) => {
-  //1) Get UserID
-  let decoded = req.cookies.jwt
-    ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
-    : undefined;
+  // Check params
+  if (!isValidObjectId(req.params.auction_id))
+    return next(new AppError("Pleae enter valid mongoDB id", 400));
 
-  if (!decoded) {
-    decoded = { id: undefined };
+  let token;
+  // 1) Get the token and check if it's exists
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
   }
+  let decoded = {};
+  if (!token) {
+    decoded.id = undefined;
+  } else {
+    decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+  }
+
   const auctionId = req.params.auction_id;
   if (!auctionId) {
     return next(new AppError("Required auction_id query"), 400);
@@ -520,14 +616,22 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
 });
 
 exports.getBidHistory = catchAsync(async (req, res, next) => {
-  // 1) Get current user ID
+  if (!isValidObjectId(req.params.auction_id))
+    return next(new AppError("Pleae enter valid mongoDB id", 400));
 
-  let decoded = req.cookies.jwt
-    ? await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET)
-    : undefined;
-
-  if (!decoded) {
-    decoded = { id: undefined };
+  let token;
+  // 1) Get the token and check if it's exists
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+  let decoded = {};
+  if (!token) {
+    decoded.id = undefined;
+  } else {
+    decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   }
 
   const auction_id = req.params.auction_id;
@@ -564,7 +668,7 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
     const user = await User.findById(value.bidderID);
     formatBidHistory.push({
       bidderName: censoredName(user.displayName),
-      biddingDate: new Date(value.biddingDate).valueOf(),
+      biddingDate: String(new Date(value.biddingDate).getTime()),
       biddingPrice: value.biddingPrice,
     });
 
@@ -587,6 +691,10 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
 
 // Refresh (Finished)
 exports.refresh = catchAsync(async (req, res, next) => {
+  //Check id params
+  if (!isValidObjectId(req.params.auction_id))
+    return next(new AppError("Pleae enter valid mongoDB id", 400));
+
   const auction = await Auction.findById(req.params.auction_id);
 
   if (!auction) {
@@ -605,6 +713,9 @@ exports.refresh = catchAsync(async (req, res, next) => {
 });
 
 exports.postBid = catchAsync(async (req, res, next) => {
+  //Check valid id
+  if (!isValidObjectId(req.params.auction_id))
+    return next(new AppError("Pleae enter valid mongoDB id", 400));
   // 1) Get current user ID
   const user_id = req.user.id;
   //2 Get AuctionID
@@ -677,7 +788,7 @@ exports.postBid = catchAsync(async (req, res, next) => {
     bidderID: user_id,
     auctionID,
     biddingPrice: req.body.biddingPrice,
-    biddingDate: Date.now(),
+    biddingDate: String(Date.now()),
   };
 
   const newBidHistory = await BidHistory.create(bidHistory);
