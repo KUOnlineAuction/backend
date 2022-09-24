@@ -237,6 +237,6 @@ exports.aucProfile = catchAsync (async (req, res, next) =>{
 
     res.status(200).json({
         result: "success",
-        user
+        data: user
     })
 })
