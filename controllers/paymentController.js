@@ -36,14 +36,13 @@ exports.postPayment = catchAsync(async (req, res, next) => {
   let billingInfo = await BillingInfo.findOne({
     auctionID: req.params.auction_id,
   });
-
   if (!billingInfo) {
     return next(new AppError("BillingInfo not found"));
   }
   const pictureName = `${billingInfo._id}.jpeg`;
 
   savePicture(
-    req.body.slipPicture,
+    req.body.slipPicture[0],
     "slipPicture",
     pictureName,
     null,
