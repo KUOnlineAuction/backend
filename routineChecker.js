@@ -25,18 +25,18 @@ mongoose
     });
 
 // Routine checking for Auctions ending (Every start of a minute)
-cron.schedule('*/10 * * * * *', async ()=> {
+cron.schedule('* * * * * *', async ()=> {
     const filter = {
         endDate: {$lt : Date.now()},
         auctionStatus: "bidding"
     }
     const update = {
-        auctionStatus: "finished"
+        auctionStatus: "waiting"
     }
 
     const auction = await Auction.updateMany(filter, update)
     console.log(`Found ${auction.n} documents, updated ${auction.nModified}`)
-    console.log(auction)
+    // console.log(auction)
 })
 
 // Routine checking for delivering deadline (Every day at midnight)
