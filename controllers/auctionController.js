@@ -119,7 +119,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     auction.forEach((value) => {
       let tempVal = {
         auctionID: value._id,
-        coverPicture: value.productDetail.productPicture[0] || "default.jpg",
+        coverPicture: value.productDetail.productPicture[0] || "default.jpeg",
         productName: value.productDetail.productName,
         currentPrice: value.currentPrice
           ? value.currentPrice
@@ -148,7 +148,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     auction.forEach((value) => {
       value = {
         auctionID: value._id,
-        coverPicture: value.productDetail.productPicture[0] || "default.jpg",
+        coverPicture: value.productDetail.productPicture[0] || "default.jpeg",
         productName: value.productDetail.productName,
         endDate: String(new Date(value.endDate).getTime()),
         currentPrice: value.currentPrice
@@ -162,7 +162,10 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     });
   } else if (filter === "popular") {
     // Serach ตามจำนวน bidder
-    auction = await Auction.find({ endDate: { $gt: Date.now() } }).populate({
+    auction = await Auction.find({
+      endDate: { $gt: Date.now() },
+      auctionStatus: "bidding",
+    }).populate({
       path: "bidHistory",
     });
     Array.from(auction, (value) => {
@@ -171,7 +174,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
       ];
       value = {
         auctionID: value._id,
-        coverPicture: value.productDetail.productPicture[0] || "default.jpg",
+        coverPicture: value.productDetail.productPicture[0] || "default.jpeg",
         productName: value.productDetail.productName,
         endDate: String(new Date(value.endDate).getTime()),
         currentPrice: value.currentPrice
@@ -189,7 +192,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     // Search ตาม Auction ใกล้หมดเวลา
     auction = await Auction.aggregate([
       {
-        $match: { endDate: { $gt: Date.now() } },
+        $match: { auctionStatus: "bidding" },
       },
       {
         $project: {
@@ -296,7 +299,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
     auction = await Auction.aggregate([
       { $unwind: "$productDetail" },
       {
-        $match: { "productDetail.category": category},
+        $match: { "productDetail.category": category },
       },
       {
         $project: {
@@ -515,7 +518,7 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 
   const productPictureNames = [];
   if (!req.body.productPicture) {
-    return next(new AppError("Please send productPicure"), 400);
+    return next(new AppError("Please send productPicture"), 400);
   }
   req.body.productPicture.forEach((value, index, arr) => {
     const pictureName = `${newAuction._id}-${index}.jpeg`;

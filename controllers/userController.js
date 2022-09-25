@@ -80,12 +80,12 @@ exports.myProfile = catchAsync(async (req, res, next) => {
 exports.editProfle = catchAsync(async (req, res, next) => {
   // 1) find the user
   const user = await User.findById(req.user.id);
-
+  let filename;
   // 2) update the provided feilds
   // 2.1) update the profile picture
 
   if (req.body.profilePicture) {
-    const filename = `${req.user.id}.jpg`;
+    filename = `${req.user.id}.jpeg`;
     // await savePicture(req.body.profilePicture, 'profilePicture', filename, 1000,1000,quality=80)
     await savePicture(
       req.body.profilePicture,
@@ -110,6 +110,7 @@ exports.editProfle = catchAsync(async (req, res, next) => {
     if (req.body[el]) {
       user[el] = req.body[el];
     }
+    user.profilePicture = filename
   }
   await user.save();
   // await user.save()
@@ -303,6 +304,7 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
     el.productDetail = undefined;
   }
 
+<<<<<<< HEAD
   auctions = await Auction.find({
     '_id': { $in: queryString }
   }).select('productDetail endDate currentPrice').sort('endDate').limit(15).lean()
@@ -314,7 +316,19 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
     el.productDetail._id = undefined
     el.productDetail = undefined
   }
-
+=======
+    auctions = await Auction.find({
+        '_id': { $in : queryString}
+    }).select('productDetail endDate currentPrice').sort('endDate').limit(15).lean()
+    
+    for(let el of auctions){
+        // comment next line if picture hasn't been implemented
+        el.productPicture = await getPicture('auctionPicture', el.productDetail.productPicture[0])
+        el.productName = el.productDetail.productName
+        el.productDetail._id = undefined
+        el.productDetail = undefined
+    }
+>>>>>>> a0adeb503f60d66d1f100ab58ff1cffbb0bb4c1f
 
   user.activeAuctionList = auctions;
 

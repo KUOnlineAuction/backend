@@ -9,9 +9,9 @@ const readFile = promisify(fs.readFile);
 
 const getPicture = async(folder, filename, width=1000, height=1000) => {
     picturePath = path.join(__dirname, '..', 'picture', folder, filename)
-    const pictureContentBuffer = await readFile(picturePath).catch((err) => {
-        console.log(`The requested folder (${folder}) or filename (${filename}) doesn't exists`);
-        return;
+    const pictureContentBuffer = await readFile(picturePath).catch(async (err) => {
+        const defaultPicturePath = path.join(__dirname, '..', 'picture', folder, 'default.jpeg')
+        return await readFile(defaultPicturePath)
     })
     if(!pictureContentBuffer){
         return undefined
