@@ -189,7 +189,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     // Search ตาม Auction ใกล้หมดเวลา
     auction = await Auction.aggregate([
       {
-        $match: { endDate: { $gt: Date.now() } },
+        $match: { auctionStatus: "bidding" },
       },
       {
         $project: {
@@ -517,7 +517,7 @@ exports.postAuction = catchAsync(async (req, res, next) => {
   if (!req.body.productPicture) {
     return next(new AppError("Please send productPicture"), 400);
   }
-  req.body.productPicture.forEach((value, index, arr) => {
+  req.body.fxture.forEach((value, index, arr) => {
     const pictureName = `${newAuction._id}-${index}.jpeg`;
     productPictureNames.push(pictureName);
     newAuction.productDetail.productPicture.push(pictureName);
