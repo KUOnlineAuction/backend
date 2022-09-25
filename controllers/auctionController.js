@@ -162,7 +162,10 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     });
   } else if (filter === "popular") {
     // Serach ตามจำนวน bidder
-    auction = await Auction.find({ endDate: { $gt: Date.now() } }).populate({
+    auction = await Auction.find({
+      endDate: { $gt: Date.now() },
+      auctionStatus: "bidding",
+    }).populate({
       path: "bidHistory",
     });
     Array.from(auction, (value) => {
