@@ -61,6 +61,7 @@ exports.postPayment = catchAsync(async (req, res, next) => {
   billingInfo.bidderPhoneNumber = req.body.phoneNumber;
   billingInfo.receiverName = req.body.bidderName;
   billingInfo.billingInfoStatus = "waitingConfirmSlip";
+  billingInfo.address = req.body.bidderAddress;
 
   billingInfo.save();
 
