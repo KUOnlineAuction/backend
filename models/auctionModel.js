@@ -71,7 +71,7 @@ const auctionSchema = new mongoose.Schema({
   startingPrice: {
     type: Number,
     required: [true, "An auction must has a stating price."],
-    min: [0, "The starting price must not be negative."],
+    min: [1, "The starting price must not be negative."],
   },
   bidStep: {
     type: Number,
