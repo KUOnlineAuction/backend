@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const categoryTypesEnum = [
   "Home Improvement",
   "Jewellery",
-  "Coins, Currentcy, Stamps",
+  "Coins, Currency, Stamps",
   "Watches",
   "Fashion",
   "Arts",
