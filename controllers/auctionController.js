@@ -294,6 +294,41 @@ exports.getSearch = catchAsync(async (req, res, next) => {
         },
       },
     ]);
+  } else if (name && category) {
+    //Search By Category and Name
+    auction = await Auction.aggregate([
+      { $unwind: "$productDetail" },
+      {
+        $match: {
+          "productDetail.category": category,
+          "productDetail.productName": name,
+        },
+      },
+      {
+        $project: {
+          timeRemaining: {
+            $subtract: ["$endDate", Date.now()],
+          },
+        },
+      },
+      {
+        $project: {
+          auctionID: "$_id",
+          productName: "$productDetail.productName",
+          category: "$productDetail.category",
+          coverPicture: "$productDetail.productPicture",
+          endDate: "$endDate",
+          currentPrice: "$currentPrice",
+          //isWinning พังอยู่
+          isWinning: {
+            $eq: ["$currentWinnerID", { $toObjectId: decoded.id }],
+          },
+          timeRemaining: {
+            $subtract: ["$endDate", Date.now()],
+          },
+        },
+      },
+    ]);
   } else {
     //Search By Category
     auction = await Auction.aggregate([
@@ -378,7 +413,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
 exports.getFollow = catchAsync(async (req, res, next) => {
   //Check auction_id is valid?
   if (!isValidObjectId(req.params.auction_id))
-    return next("Pleae enter valid mongoDB id", 400);
+    return next("Please enter valid mongoDB ID", 400);
   // 1) Get current user ID
   const decoded = req.user;
 
@@ -465,7 +500,7 @@ exports.postFollow = catchAsync(async (req, res, next) => {
       });
     }
   } else {
-    return next(new AppError("Please enter either true or false"));
+    return next(new AppError("Please enter either true or false"), 400);
   }
   user.save();
 
@@ -534,7 +569,7 @@ exports.postAuction = catchAsync(async (req, res, next) => {
   //3) Add auction to auctionList
   const user = await User.findById(decoded.id);
   if (!user) {
-    return next(AppError("User not found"), 401);
+    return next(AppError("User not found"), 400);
   }
   user.activeAuctionList.push(newAuction._id);
   user.save();
@@ -550,7 +585,7 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 exports.getAuctionDetail = catchAsync(async (req, res, next) => {
   // Check params
   if (!isValidObjectId(req.params.auction_id))
-    return next(new AppError("Pleae enter valid mongoDB id", 400));
+    return next(new AppError("Please enter valid mongoDB ID", 400));
 
   let token;
   // 1) Get the token and check if it's exists
@@ -574,7 +609,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
 
   const auction = await Auction.findById(auctionId);
   if (!auction) {
-    return next(new AppError("Auction not found"));
+    return next(new AppError("Auction not found"), 400);
   }
 
   // Get myLastBid
@@ -620,7 +655,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
 
 exports.getBidHistory = catchAsync(async (req, res, next) => {
   if (!isValidObjectId(req.params.auction_id))
-    return next(new AppError("Pleae enter valid mongoDB id", 400));
+    return next(new AppError("Please enter valid mongoDB ID", 400));
 
   let token;
   // 1) Get the token and check if it's exists
@@ -696,7 +731,7 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
 exports.refresh = catchAsync(async (req, res, next) => {
   //Check id params
   if (!isValidObjectId(req.params.auction_id))
-    return next(new AppError("Pleae enter valid mongoDB id", 400));
+    return next(new AppError("Please enter valid mongoDB ID", 400));
 
   const auction = await Auction.findById(req.params.auction_id);
 
@@ -718,7 +753,7 @@ exports.refresh = catchAsync(async (req, res, next) => {
 exports.postBid = catchAsync(async (req, res, next) => {
   //Check valid id
   if (!isValidObjectId(req.params.auction_id))
-    return next(new AppError("Pleae enter valid mongoDB id", 400));
+    return next(new AppError("Please enter valid mongoDB ID", 400));
   // 1) Get current user ID
   const user_id = req.user.id;
   //2 Get AuctionID
