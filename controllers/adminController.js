@@ -19,7 +19,7 @@ exports.getBlacklist = catchAsync( async (req, res, next) => {
         }
     ])
     res.status(200).json({
-        result :"success",
+        status :"success",
         blacklistedUsers
     })
 })
@@ -34,7 +34,7 @@ exports.AddBlacklistedUser = catchAsync( async (req, res, next) => {
         userStatus: 'blacklist'
     })
     res.status(200).json({
-        result :"success"
+        status :"success"
     })
 })
 
@@ -52,7 +52,7 @@ exports.removeBlacklistedUser = catchAsync( async (req, res, next) => {
         return next(new AppError("The user's email provided either not exists or the user is not in the blacklist", 400))
     }
     res.status(200).json({
-        result :"success"
+        status :"success"
     })
 })
 
@@ -86,7 +86,7 @@ exports.getReports = catchAsync( async (req, res, next) => {
         }
     ])
     res.status(200).json({
-        result :"success",
+        status :"success",
         reportList
     })
 })
@@ -189,7 +189,7 @@ exports.getTransacDetail = catchAsync( async (req, res, next) => {
     
     
     res.status(200).json({
-        result :"success",
+        status :"success",
         detail
     })
 })
@@ -308,7 +308,7 @@ exports.getTransacList = catchAsync( async (req, res, next) => {
     }
 
     res.status(200).json({
-        result :"success",
+        status :"success",
         transactionList
     })
 })
@@ -352,6 +352,6 @@ exports.confirmTransac = catchAsync( async (req, res, next) => {
         await auction.save({ validateBeforeSave: false })
     }
     res.status(200).json({
-        result :"success",
+        status :"success",
     })
 })
