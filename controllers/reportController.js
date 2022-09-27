@@ -5,6 +5,21 @@ const catchAsync = require("./../utils/catchAsync");
 const AppError = require("./../utils/appError");
 
 exports.postReport = catchAsync(async (req, res, next) => {
+  let token;
+  // 1) Get the token and check if it's exists
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+  let decoded = {};
+  if (!token) {
+    decoded.id = undefined;
+  } else {
+    decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+  }
+
   if (!req.body.reportID || !req.body.reportDescription) {
     return next(new AppError("Please enter reportID or description"), 400);
   }
@@ -15,7 +30,7 @@ exports.postReport = catchAsync(async (req, res, next) => {
     return next(new AppError("Reported ID not found"), 400);
   }
   const report = {
-    reporterID: req.user.id,
+    reporterID: decoded.id,
     reportedID: req.body.reportID,
     description: req.body.reportDescription,
     reportedTime: Date.now(),
