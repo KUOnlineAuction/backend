@@ -116,7 +116,7 @@ exports.editProfle = catchAsync(async (req, res, next) => {
   // await user.save()
   // console.log(user);
   res.status(200).json({
-    result: "success",
+    status: "success",
   });
 });
 
