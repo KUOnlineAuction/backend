@@ -200,7 +200,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
           coverPicture: "$productDetail.productPicture",
           productName: "$productDetail.productName",
           currentPrice: "$currentPrice",
-          endDate: "$endDate",
+          endDate: { $gt: ["$endDate", Date.now()] },
           //ใช้ได้เฉย
           isWinning: {
             $eq: ["$currentWinnerID", { $toObjectId: decoded.id }],
