@@ -110,7 +110,7 @@ exports.editProfle = catchAsync(async (req, res, next) => {
     if (req.body[el]) {
       user[el] = req.body[el];
     }
-    user.profilePicture = filename
+    user.profilePicture = filename;
   }
   await user.save();
   // await user.save()
@@ -178,7 +178,7 @@ exports.myorder = catchAsync(async (req, res, next) => {
     el.auctionID = el._id;
     // comment next line if picture hasn't been implemented
     const aucPic = await getPicture(
-      "auctionPicture",
+      "productPicture",
       el.productDetail.productPicture[0]
     );
     if (!aucPic) {
@@ -240,7 +240,6 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
     return next(new AppError("The user does not exists", 400));
   }
 
-
   // 2) get the badges
   let badgeNames = [];
   for (let el of user.badge) {
@@ -296,7 +295,7 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
   for (let el of auctions) {
     // comment next line if picture hasn't been implemented
     el.productPicture = await getPicture(
-      "auctionPicture",
+      "productPicture",
       el.productDetail.productPicture[0]
     );
     el.productName = el.productDetail.productName;
@@ -305,15 +304,22 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
   }
 
   auctions = await Auction.find({
-    '_id': { $in: queryString }
-  }).select('productDetail endDate currentPrice').sort('endDate').limit(15).lean()
+    _id: { $in: queryString },
+  })
+    .select("productDetail endDate currentPrice")
+    .sort("endDate")
+    .limit(15)
+    .lean();
 
   for (let el of auctions) {
     // comment next line if picture hasn't been implemented
-    el.productPicture = await getPicture('auctionPicture', el.productDetail.productPicture[0])
-    el.productName = el.productDetail.productName
-    el.productDetail._id = undefined
-    el.productDetail = undefined
+    el.productPicture = await getPicture(
+      "productPicture",
+      el.productDetail.productPicture[0]
+    );
+    el.productName = el.productDetail.productName;
+    el.productDetail._id = undefined;
+    el.productDetail = undefined;
   }
 
   user.activeAuctionList = auctions;
