@@ -301,25 +301,7 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
     el.productName = el.productDetail.productName;
     el.productDetail._id = undefined;
     el.productDetail = undefined;
-  }
-
-  auctions = await Auction.find({
-    _id: { $in: queryString },
-  })
-    .select("productDetail endDate currentPrice")
-    .sort("endDate")
-    .limit(15)
-    .lean();
-
-  for (let el of auctions) {
-    // comment next line if picture hasn't been implemented
-    el.productPicture = await getPicture(
-      "productPicture",
-      el.productDetail.productPicture[0]
-    );
-    el.productName = el.productDetail.productName;
-    el.productDetail._id = undefined;
-    el.productDetail = undefined;
+    el.endDate = (el.endDate*1).toString()
   }
 
   user.activeAuctionList = auctions;
