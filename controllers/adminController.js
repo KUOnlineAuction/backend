@@ -73,7 +73,7 @@ exports.removeBlacklistedUser = catchAsync(async (req, res, next) => {
 
 exports.getReports = catchAsync(async (req, res, next) => {
   // Fix format to match
-  const reportList = await Report.aggregate([
+  let reportList = await Report.aggregate([
     {
       $lookup: {
         from: "users",
@@ -105,6 +105,11 @@ exports.getReports = catchAsync(async (req, res, next) => {
       },
     },
   ]);
+  
+  for (let el of reportList){
+    el.reportedDate = (el.reportedDate*1).toString()
+  }
+
   res.status(200).json({
     status: "success",
     reportList,
@@ -170,6 +175,7 @@ exports.getTransacDetail = catchAsync(async (req, res, next) => {
       },
     ]);
     detail = detail[0];
+    detail.transferDataTime = (detail.transferDataTime*1).toString()
     const slipPic = await getPicture("slipPicture", detail.transactionSlip);
     if (!slipPic) {
       return next(new AppError("Couldn't find the picture"), 500);
