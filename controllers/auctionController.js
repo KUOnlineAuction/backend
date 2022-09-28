@@ -110,12 +110,16 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
       (v, i, a) => a.indexOf(v) === i
     );
 
-    auction = await Auction.find({ _id: { $in: distinctAuctionIDs } });
+    auction = await Auction.find({
+      _id: { $in: distinctAuctionIDs },
+      auctionStatus: "bidding",
+      endDate: { $gt: Date.now() },
+    });
 
     auction.forEach((value) => {
       let tempVal = {
         auctionID: value._id,
-        coverPicture: value.productDetail.productPicture[0] || "default.jpg",
+        coverPicture: value.productDetail.productPicture[0] || "default.jpeg",
         productName: value.productDetail.productName,
         currentPrice: value.currentPrice
           ? value.currentPrice
@@ -144,7 +148,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     auction.forEach((value) => {
       value = {
         auctionID: value._id,
-        coverPicture: value.productDetail.productPicture[0] || "default.jpg",
+        coverPicture: value.productDetail.productPicture[0] || "default.jpeg",
         productName: value.productDetail.productName,
         endDate: String(new Date(value.endDate).getTime()),
         currentPrice: value.currentPrice
@@ -158,14 +162,19 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     });
   } else if (filter === "popular") {
     // Serach ตามจำนวน bidder
-    auction = await Auction.find().populate({ path: "bidHistory" });
+    auction = await Auction.find({
+      endDate: { $gt: Date.now() },
+      auctionStatus: "bidding",
+    }).populate({
+      path: "bidHistory",
+    });
     Array.from(auction, (value) => {
       const distinctBidder = [
         ...new Set(value.bidHistory.map((x) => String(x.bidderID))),
       ];
       value = {
         auctionID: value._id,
-        coverPicture: value.productDetail.productPicture[0] || "default.jpg",
+        coverPicture: value.productDetail.productPicture[0] || "default.jpeg",
         productName: value.productDetail.productName,
         endDate: String(new Date(value.endDate).getTime()),
         currentPrice: value.currentPrice
@@ -182,6 +191,9 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
   } else if (filter === "ending_soon") {
     // Search ตาม Auction ใกล้หมดเวลา
     auction = await Auction.aggregate([
+      {
+        $match: { auctionStatus: "bidding" },
+      },
       {
         $project: {
           auctionID: "$_id",
@@ -215,8 +227,8 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     formatedAuction.map(async (obj) => {
       console.log(formatedAuction);
       const coverPicture = obj.coverPicture
-        ? await getPicture("productPicture", obj.coverPicture,300,300)
-        : await getPicture("productPicture", "default.jpeg",300,300);
+        ? await getPicture("productPicture", obj.coverPicture, 300, 300)
+        : await getPicture("productPicture", "default.jpeg", 300, 300);
       return {
         ...obj,
         coverPicture: coverPicture,
@@ -282,6 +294,41 @@ exports.getSearch = catchAsync(async (req, res, next) => {
         },
       },
     ]);
+  } else if (name && category) {
+    //Search By Category and Name
+    auction = await Auction.aggregate([
+      { $unwind: "$productDetail" },
+      {
+        $match: {
+          "productDetail.category": category,
+          "productDetail.productName": name,
+        },
+      },
+      {
+        $project: {
+          timeRemaining: {
+            $subtract: ["$endDate", Date.now()],
+          },
+        },
+      },
+      {
+        $project: {
+          auctionID: "$_id",
+          productName: "$productDetail.productName",
+          category: "$productDetail.category",
+          coverPicture: "$productDetail.productPicture",
+          endDate: "$endDate",
+          currentPrice: "$currentPrice",
+          //isWinning พังอยู่
+          isWinning: {
+            $eq: ["$currentWinnerID", { $toObjectId: decoded.id }],
+          },
+          timeRemaining: {
+            $subtract: ["$endDate", Date.now()],
+          },
+        },
+      },
+    ]);
   } else {
     //Search By Category
     auction = await Auction.aggregate([
@@ -319,8 +366,8 @@ exports.getSearch = catchAsync(async (req, res, next) => {
   auction = await Promise.all(
     auction.map(async (obj) => {
       const coverPicture = obj.coverPicture[0]
-        ? await getPicture("productPicture", obj.coverPicture[0],300,300)
-        : await getPicture("productPicture", "default.jpeg",300,300);
+        ? await getPicture("productPicture", obj.coverPicture[0], 300, 300)
+        : await getPicture("productPicture", "default.jpeg", 300, 300);
       obj.isWinning = String(obj.currentWinnerID) == decoded.id;
       obj.endDate = String(new Date(obj.endDate).getTime());
       return {
@@ -366,7 +413,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
 exports.getFollow = catchAsync(async (req, res, next) => {
   //Check auction_id is valid?
   if (!isValidObjectId(req.params.auction_id))
-    return next("Pleae enter valid mongoDB id", 400);
+    return next("Please enter valid mongoDB ID", 400);
   // 1) Get current user ID
   const decoded = req.user;
 
@@ -453,7 +500,7 @@ exports.postFollow = catchAsync(async (req, res, next) => {
       });
     }
   } else {
-    return next(new AppError("Please enter either true or false"));
+    return next(new AppError("Please enter either true or false"), 400);
   }
   user.save();
 
@@ -506,7 +553,7 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 
   const productPictureNames = [];
   if (!req.body.productPicture) {
-    return next(new AppError("Please send productPicure"), 400);
+    return next(new AppError("Please send productPicture"), 400);
   }
   req.body.productPicture.forEach((value, index, arr) => {
     const pictureName = `${newAuction._id}-${index}.jpeg`;
@@ -522,7 +569,7 @@ exports.postAuction = catchAsync(async (req, res, next) => {
   //3) Add auction to auctionList
   const user = await User.findById(decoded.id);
   if (!user) {
-    return next(AppError("User not found"), 401);
+    return next(AppError("User not found"), 400);
   }
   user.activeAuctionList.push(newAuction._id);
   user.save();
@@ -538,7 +585,7 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 exports.getAuctionDetail = catchAsync(async (req, res, next) => {
   // Check params
   if (!isValidObjectId(req.params.auction_id))
-    return next(new AppError("Pleae enter valid mongoDB id", 400));
+    return next(new AppError("Please enter valid mongoDB ID", 400));
 
   let token;
   // 1) Get the token and check if it's exists
@@ -562,7 +609,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
 
   const auction = await Auction.findById(auctionId);
   if (!auction) {
-    return next(new AppError("Auction not found"));
+    return next(new AppError("Auction not found"), 400);
   }
 
   // Get myLastBid
@@ -608,7 +655,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
 
 exports.getBidHistory = catchAsync(async (req, res, next) => {
   if (!isValidObjectId(req.params.auction_id))
-    return next(new AppError("Pleae enter valid mongoDB id", 400));
+    return next(new AppError("Please enter valid mongoDB ID", 400));
 
   let token;
   // 1) Get the token and check if it's exists
@@ -684,7 +731,7 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
 exports.refresh = catchAsync(async (req, res, next) => {
   //Check id params
   if (!isValidObjectId(req.params.auction_id))
-    return next(new AppError("Pleae enter valid mongoDB id", 400));
+    return next(new AppError("Please enter valid mongoDB ID", 400));
 
   const auction = await Auction.findById(req.params.auction_id);
 
@@ -706,7 +753,7 @@ exports.refresh = catchAsync(async (req, res, next) => {
 exports.postBid = catchAsync(async (req, res, next) => {
   //Check valid id
   if (!isValidObjectId(req.params.auction_id))
-    return next(new AppError("Pleae enter valid mongoDB id", 400));
+    return next(new AppError("Please enter valid mongoDB ID", 400));
   // 1) Get current user ID
   const user_id = req.user.id;
   //2 Get AuctionID
@@ -727,13 +774,13 @@ exports.postBid = catchAsync(async (req, res, next) => {
     });
 
     if (bidHistory.length > 0)
-      return next(new AppError("5 minute auction can be only bid once"));
+      return next(new AppError("5 minute auction can be only bid once"), 400);
   }
 
   // If postBid after bidding endded
 
   if (auction.auctionStatus !== "bidding")
-    return next(new AppError("Bid is already ended"));
+    return next(new AppError("Bid is already ended"), 500);
 
   //3 Update Auction ขอใส่อันนี้ไปก่อนเดียวไป refactor code ทีหลัง
 
@@ -755,12 +802,11 @@ exports.postBid = catchAsync(async (req, res, next) => {
       currentPrice: req.body.biddingPrice,
       currentWinnerID: user_id,
       endDate:
-        auction.expectedPrice && auction.expectedPrice <= auction.currentPrice
+        auction.expectedPrice && auction.expectedPrice <= req.body.biddingPrice //wtf
           ? Date.now() + 60 * 60 * 1000
           : auction.endDate,
     }
   );
-
   //4) Add to activeBiddingList if user never bid before
   if (!user.activeBiddingList.includes(req.params.auction_id)) {
     user.activeBiddingList.push(req.params.auction_id);
