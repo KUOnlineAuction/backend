@@ -96,6 +96,7 @@ exports.editProfle = catchAsync(async (req, res, next) => {
       null,
       (original = true)
     );
+    user.profilePicture = filename;
   }
 
   // 2.2) then the rest
@@ -110,7 +111,6 @@ exports.editProfle = catchAsync(async (req, res, next) => {
     if (req.body[el]) {
       user[el] = req.body[el];
     }
-    user.profilePicture = filename;
   }
   await user.save();
   // await user.save()
