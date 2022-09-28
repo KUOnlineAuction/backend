@@ -774,13 +774,13 @@ exports.postBid = catchAsync(async (req, res, next) => {
     });
 
     if (bidHistory.length > 0)
-      return next(new AppError("5 minute auction can be only bid once"));
+      return next(new AppError("5 minute auction can be only bid once"), 400);
   }
 
   // If postBid after bidding endded
 
   if (auction.auctionStatus !== "bidding")
-    return next(new AppError("Bid is already ended"));
+    return next(new AppError("Bid is already ended"), 500);
 
   //3 Update Auction ขอใส่อันนี้ไปก่อนเดียวไป refactor code ทีหลัง
 
@@ -802,12 +802,11 @@ exports.postBid = catchAsync(async (req, res, next) => {
       currentPrice: req.body.biddingPrice,
       currentWinnerID: user_id,
       endDate:
-        auction.expectedPrice && auction.expectedPrice <= auction.currentPrice
+        auction.expectedPrice && auction.expectedPrice <= req.body.biddingPrice //wtf
           ? Date.now() + 60 * 60 * 1000
           : auction.endDate,
     }
   );
-
   //4) Add to activeBiddingList if user never bid before
   if (!user.activeBiddingList.includes(req.params.auction_id)) {
     user.activeBiddingList.push(req.params.auction_id);
