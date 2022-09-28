@@ -526,6 +526,12 @@ exports.postAuction = catchAsync(async (req, res, next) => {
     decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   }
 
+  // 1.5 Data Validation
+  //Date
+  if (new Date(req.body.endDate * 1000) + 5 * 60 * 1000 < Date.now()) {
+    return AppError("Invalid endDate", 400);
+  }
+
   //2) Create Auction
 
   const createdAuction = { ...req.body };
