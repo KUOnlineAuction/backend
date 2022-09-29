@@ -6,7 +6,7 @@ const Badge = require("./../models/badgeModel");
 const User = require("./../models/userModel");
 const Review = require("./../models/reviewModel");
 const Auction = require("./../models/auctionModel");
-const BillingInfo = require("./../models/billingInfoModel");
+const { BillingInfo } = require("./../models/billingInfoModel");
 const BidHistory = require("./../models/bidHistoryModel");
 const catchAsync = require("./../utils/catchAsync");
 const { promisify } = require("util");
@@ -166,9 +166,7 @@ exports.myorder = catchAsync(async (req, res, next) => {
 
   // 3) Altered the response as the API specified
   let auctions = await Auction.find({
-    _id: { $in: queryString ,},
-    endDate: {$gt: Date.now()},
-    auctionStatus: "bidding"
+    _id: { $in: queryString },
   })
     .select(
       "auctioneerID productDetail endDate currentPrice auctionStatus billingHistoryID bidHistory"
@@ -191,13 +189,16 @@ exports.myorder = catchAsync(async (req, res, next) => {
     el.productPicture = aucPic;
     el.productName = el.productDetail.productName;
     el.lastBid = el.currentPrice;
-    if (el.auctionStatus === "waiting") {
+    if(el.auctionStatus === "bidding"){
+      el.endDate = (el.endDate*1).toString()
+      el.billingStatus = null;
+    }
+    else{
       const bill = await BillingInfo.findById(el.billingHistoryID)
         .select("billingInfoStatus")
         .lean();
       el.billingStatus = bill.billingInfoStatus;
-    } else {
-      el.billingStatus = null;
+      el.endDate = null
     }
 
     if (req.query.list === "mybid" && el.auctionStatus === "bidding") {
@@ -219,7 +220,6 @@ exports.myorder = catchAsync(async (req, res, next) => {
       "productDetail",
       "currentPrice",
       "billingHistoryID",
-      "endDate",
       "bidHistory",
     ];
     for (field of excludedField) {
