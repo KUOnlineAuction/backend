@@ -645,6 +645,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
         productPicture,
       },
       auctioneerID: auction.auctioneerID,
+      auctioneerName: user.displayName,
       bidStep: auction.bidStep || defaultMinimumBid(auction.currentPrice),
       endDate: String(new Date(auction.endDate).getTime()),
       currentPrice: !auction.currentPrice //if auction did not have bidder send startPrice instead currentPrice
