@@ -6,7 +6,7 @@ const Badge = require("./../models/badgeModel");
 const User = require("./../models/userModel");
 const Review = require("./../models/reviewModel");
 const Auction = require("./../models/auctionModel");
-const BillingInfo = require("./../models/billingInfoModel");
+const { BillingInfo } = require("./../models/billingInfoModel");
 const BidHistory = require("./../models/bidHistoryModel");
 const catchAsync = require("./../utils/catchAsync");
 const { promisify } = require("util");
@@ -169,13 +169,15 @@ exports.myorder = catchAsync(async (req, res, next) => {
     _id: { $in: queryString },
   })
     .select(
-      "productDetail endDate currentPrice auctionStatus billingHistoryID bidHistory"
+      "auctioneerID productDetail endDate currentPrice auctionStatus billingHistoryID bidHistory"
     )
     .sort("endDate")
     .lean();
 
   for (let el of auctions) {
     el.auctionID = el._id;
+    const auctioneerDisplayname = await User.findById(el.auctioneerID)
+    el.auctioneerDisplayname = auctioneerDisplayname.displayName
     // comment next line if picture hasn't been implemented
     const aucPic = await getPicture(
       "productPicture",
@@ -187,13 +189,16 @@ exports.myorder = catchAsync(async (req, res, next) => {
     el.productPicture = aucPic;
     el.productName = el.productDetail.productName;
     el.lastBid = el.currentPrice;
-    if (el.auctionStatus === "waiting") {
+    if(el.auctionStatus === "bidding"){
+      el.endDate = (el.endDate*1).toString()
+      el.billingStatus = null;
+    }
+    else{
       const bill = await BillingInfo.findById(el.billingHistoryID)
         .select("billingInfoStatus")
         .lean();
       el.billingStatus = bill.billingInfoStatus;
-    } else {
-      el.billingStatus = null;
+      el.endDate = undefined
     }
 
     if (req.query.list === "mybid" && el.auctionStatus === "bidding") {
@@ -215,7 +220,6 @@ exports.myorder = catchAsync(async (req, res, next) => {
       "productDetail",
       "currentPrice",
       "billingHistoryID",
-      "endDate",
       "bidHistory",
     ];
     for (field of excludedField) {
@@ -301,25 +305,7 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
     el.productName = el.productDetail.productName;
     el.productDetail._id = undefined;
     el.productDetail = undefined;
-  }
-
-  auctions = await Auction.find({
-    _id: { $in: queryString },
-  })
-    .select("productDetail endDate currentPrice")
-    .sort("endDate")
-    .limit(15)
-    .lean();
-
-  for (let el of auctions) {
-    // comment next line if picture hasn't been implemented
-    el.productPicture = await getPicture(
-      "productPicture",
-      el.productDetail.productPicture[0]
-    );
-    el.productName = el.productDetail.productName;
-    el.productDetail._id = undefined;
-    el.productDetail = undefined;
+    el.endDate = (el.endDate*1).toString()
   }
 
   user.activeAuctionList = auctions;
