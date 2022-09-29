@@ -177,7 +177,7 @@ exports.myorder = catchAsync(async (req, res, next) => {
   for (let el of auctions) {
     el.auctionID = el._id;
     const auctioneerDisplayname = await User.findById(el.auctioneerID)
-    el.auctioneerName = auctioneerDisplayname.displayName
+    el.auctioneerDisplayname = auctioneerDisplayname.displayName
     // comment next line if picture hasn't been implemented
     const aucPic = await getPicture(
       "productPicture",
@@ -198,7 +198,7 @@ exports.myorder = catchAsync(async (req, res, next) => {
         .select("billingInfoStatus")
         .lean();
       el.billingStatus = bill.billingInfoStatus;
-      el.endDate = null
+      el.endDate = undefined
     }
 
     if (req.query.list === "mybid" && el.auctionStatus === "bidding") {
