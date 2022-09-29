@@ -166,16 +166,20 @@ exports.myorder = catchAsync(async (req, res, next) => {
 
   // 3) Altered the response as the API specified
   let auctions = await Auction.find({
-    _id: { $in: queryString },
+    _id: { $in: queryString ,},
+    endDate: {$gt: Date.now()},
+    auctionStatus: "bidding"
   })
     .select(
-      "productDetail endDate currentPrice auctionStatus billingHistoryID bidHistory"
+      "auctioneerID productDetail endDate currentPrice auctionStatus billingHistoryID bidHistory"
     )
     .sort("endDate")
     .lean();
 
   for (let el of auctions) {
     el.auctionID = el._id;
+    const auctioneerDisplayname = await User.findById(el.auctioneerID)
+    el.auctioneerName = auctioneerDisplayname.displayName
     // comment next line if picture hasn't been implemented
     const aucPic = await getPicture(
       "productPicture",
