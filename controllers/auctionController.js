@@ -225,7 +225,6 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
   formatedAuction = formatedAuction.slice(0, 15);
   formatedAuction = await Promise.all(
     formatedAuction.map(async (obj) => {
-      console.log(formatedAuction);
       const coverPicture = obj.coverPicture
         ? await getPicture("productPicture", obj.coverPicture, 300, 300)
         : await getPicture("productPicture", "default.jpeg", 300, 300);
@@ -646,6 +645,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
         productPicture,
       },
       auctioneerID: auction.auctioneerID,
+      auctioneerName: user.displayName,
       bidStep: auction.bidStep || defaultMinimumBid(auction.currentPrice),
       endDate: String(new Date(auction.endDate).getTime()),
       currentPrice: !auction.currentPrice //if auction did not have bidder send startPrice instead currentPrice
