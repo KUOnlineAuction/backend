@@ -219,6 +219,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
       value.coverPicture = value.coverPicture[0] || "default.jpeg";
       value.endDate = String(new Date(value.endDate).getTime());
     });
+    auction.filter((auction) => auction.endDate > Date.now());
     formatedAuction = auction;
   }
 
@@ -808,7 +809,9 @@ exports.postBid = catchAsync(async (req, res, next) => {
       currentPrice: req.body.biddingPrice,
       currentWinnerID: user_id,
       endDate:
-        auction.expectedPrice && auction.expectedPrice <= req.body.biddingPrice //wtf
+        auction.expectedPrice &&
+        auction.expectedPrice <= req.body.biddingPrice &&
+        auction.endDate - Date.now() > 60 * 60 * 1000 //wtf
           ? Date.now() + 60 * 60 * 1000
           : auction.endDate,
     }
