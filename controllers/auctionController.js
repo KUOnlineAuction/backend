@@ -211,15 +211,14 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
         },
       },
     ]);
-
     auction.sort((a, b) => (a.timeRemaining > b.timeRemaining ? 1 : -1));
+    auction.filter((auction) => auction.timeRemaining >= 0);
     auction.forEach((value) => {
       delete value._id;
       delete value.timeRemaining;
       value.coverPicture = value.coverPicture[0] || "default.jpeg";
       value.endDate = String(new Date(value.endDate).getTime());
     });
-    auction.filter((auction) => auction.endDate > Date.now());
     formatedAuction = auction;
   }
 
@@ -636,6 +635,30 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
     user.successAuctioned,
     user.rating
   );
+  let isAlreadyBid5Minute = false;
+  const bidHistoryBefore5 = await BidHistory.find({
+    auctionID: auctionId,
+  }).sort({ biddingDate: -1 });
+
+  bidHistoryBefore5.filter(
+    (bidHistory) => bidHistory.biddingDate < auction.endDate - 5 * 60 * 1000
+  );
+
+  let currentPrice = !auction.currentPrice
+    ? auction.startingPrice
+    : auction.currentPrice;
+  // 5 minute System currentPrice condition
+  if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
+    if (
+      bidHistory[0] &&
+      auction.endDate - bidHistory[0].biddingDate <= 5 * 60 * 1000
+    ) {
+      isAlreadyBid5Minute = true;
+      currentPrice = bidHistory[0] ? bidHistory[0].biddingPrice : 0;
+    } else {
+      currentPrice = bidHistoryBefore5[0].biddingPrice;
+    }
+  }
 
   res.status(200).json({
     status: "success",
@@ -649,13 +672,12 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
       auctioneerName: user.displayName,
       bidStep: auction.bidStep || defaultMinimumBid(auction.currentPrice),
       endDate: String(new Date(auction.endDate).getTime()),
-      currentPrice: !auction.currentPrice //if auction did not have bidder send startPrice instead currentPrice
-        ? auction.startingPrice
-        : auction.currentPrice,
+      currentPrice,
 
       myLastBid: bidHistory[0] ? bidHistory[0].biddingPrice : 0,
       isAuctioneer: decoded.id === String(auction.auctioneerID),
       isFraud,
+      isAlreadyBid5Minute,
     },
   });
 });
@@ -802,18 +824,25 @@ exports.postBid = catchAsync(async (req, res, next) => {
       400
     );
   }
+
+  const expectedPriceCheck = (auction) => {
+    if (auction.endDate - Date.now() <= 60 * 60 * 1000) return auction.endDate;
+    if (
+      auction.expectedPrice &&
+      auction.expectedPrice <= req.body.biddingPrice
+    ) {
+      return Date.now() + 60 * 60 * 1000;
+    }
+    return auction.endDate;
+  };
+
   // Expected Price
   const updatedAuction = await Auction.updateOne(
     { _id: req.params.auction_id },
     {
       currentPrice: req.body.biddingPrice,
       currentWinnerID: user_id,
-      endDate:
-        auction.expectedPrice &&
-        auction.expectedPrice <= req.body.biddingPrice &&
-        auction.endDate - Date.now() > 60 * 60 * 1000 //wtf
-          ? Date.now() + 60 * 60 * 1000
-          : auction.endDate,
+      endDate: expectedPriceCheck(auction),
     }
   );
   //4) Add to activeBiddingList if user never bid before
