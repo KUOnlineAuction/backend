@@ -4,6 +4,8 @@ const mongoose = require("mongoose");
 const Auction = require("./models/auctionModel");
 const { BillingInfo } = require("./models/billingInfoModel");
 const Report = require("./models/reportModel");
+const User = require("./models/userModel");
+const BidHistory = require("./models/bidHistoryModel");
 
 dotenv.config({ path: "./config.env" });
 const DB = process.env.DATABASE.replace(
@@ -24,22 +26,141 @@ mongoose
     console.log("DB connection successful");
   });
 
-// Routine checking for Auctions ending (Every start of a minute)
-cron.schedule("* * * * *", async () => {
-  const filter = {
-    endDate: { $lt: Date.now() },
-    auctionStatus: "bidding",
-  };
-  const update = {
-    auctionStatus: "waiting",
-  };
+let hourlyCheckList = []
 
-  const auction = await Auction.updateMany(filter, update);
-  console.log(`Found ${auction.n} documents, updated ${auction.nModified}`);
-  // console.log(auction)
-});
+async function getAuctionThisHour() {
+    const auctions = await Auction.aggregate([
+      {
+          $match: {
+              endDate: {$lt :(new Date(Date.now()+ 1000 * 60 * 60))},
+              auctionStatus: "bidding"
+          }
+      },
+      {
+          $project: {
+              _id: 1,
+              endDate: 1,
+          }
+      },
+      {
+          $sort: { endDate: 1}
+      }
+    ])
+    hourlyCheckList.length = 0
+    hourlyCheckList.push.apply(hourlyCheckList, auctions)
+    // console.log(`[H: Hourly Checklist] Found ${hourlyCheckList.length} auctions ending this hour.`)
+}
+getAuctionThisHour()
+// optimized Routine checking for Auctions ending:
+//      1) Pulling auctions (Once an hour)
+cron.schedule("0 * * * *", getAuctionThisHour)
+// }
 
-// Routine checking for delivering deadline (Every day at midnight)
+// test();
+
+//   2) Update the ending auctions (Once a minute)
+cron.schedule("* * * * *", async() => {
+    // check if there is an auction ending this hour
+    if(hourlyCheckList.length === 0){
+        // console.log(`[M: End Auctions] No entry updated sinc enone end this hour.`)
+        return;
+    }
+
+    let cont = true
+    let editedEntries = 0
+
+    // continue updating status as long as the first entry in queue is ending that minute
+    while(cont){
+        if (hourlyCheckList.length == 0){
+            cont = false
+            break
+        }
+        const checkingAuction = hourlyCheckList[0]
+    
+        // update the first entry of the list
+        if(checkingAuction.endDate < Date.now()){
+            // find the entry
+            const updatedAuction = await Auction.findById(checkingAuction._id)
+            // if there is no bidder
+            if(!updatedAuction.currentWinnerID){
+                // change the bidding to "finished"
+                updatedAuction.auctionStatus = "finished"
+                await updatedAuction.save({ validateBeforeSave: false })
+            }
+            
+            // else change the bidding to "waiting"
+            else {
+                updatedAuction.auctionStatus = "waiting"
+                // Add an billing info
+                const newBillingInfo = {
+                    auctionID: updatedAuction._id,
+                    winningPrice: updatedAuction.currentPrice
+                }
+                const createdBillingInfo = await BillingInfo.create(newBillingInfo)
+                updatedAuction.billingHistoryID = createdBillingInfo._id
+                await updatedAuction.save({ validateBeforeSave: false })
+                // remove from active bidding list for user
+
+                const userFilter = {
+                    activeBiddingList: mongoose.Types.ObjectId(updatedAuction._id)
+                }
+                const updateActiveBiddingList = {
+                    $pull: {"activeBiddingList": updatedAuction._id},
+                }
+                await User.updateMany(userFilter,updateActiveBiddingList)
+
+                // BUT add it to finished bidding list for winner
+                const winnerFilter = {
+                    _id: updatedAuction.currentWinnerID
+                }
+                const updateWinnerFinishedAuctionList = {
+                    $push: {"finishedBiddingList": updatedAuction._id}
+                }
+                await User.updateOne(winnerFilter, updateWinnerFinishedAuctionList)
+            }
+            // remove from active auction list of the auctioneer for any case 
+            const auctioneerFilter = {
+              _id: updatedAuction.auctioneerID
+            }
+            const updateActiveAuctionList = {
+              $pull: {"activeAuctionList": updatedAuction._id},
+              $push: {"finishedAuctionList": updatedAuction._id}
+            }
+            await User.updateOne(auctioneerFilter, updateActiveAuctionList)
+            
+            // remove this auction from any "following list" anyways
+            const updateQuery = {
+                followingList: mongoose.Types.ObjectId(updatedAuction._id)
+            }
+            const updateField = {
+                $pull: {"followingList": updatedAuction._id}
+            }
+            await User.updateMany(updateQuery, updateField)
+            editedEntries++
+            hourlyCheckList.shift()
+        } else {
+            cont = false
+        }
+    }
+    // console.log(`[M: End Auctions] ${editedEntries} auctions changed to waiting/finished.`)
+})
+
+// UNOPTIMIZED Routine checking for Auctions ending (Every start of a minute) 
+// cron.schedule("* * * * *", async () => {
+//   const filter = {
+//     endDate: { $lt: Date.now() },
+//     auctionStatus: "bidding",
+//   };
+//   const update = {
+//     auctionStatus: "waiting",
+//   };
+
+//   const auction = await Auction.updateMany(filter, update);
+//   console.log(`Found ${auction.n} documents, updated ${auction.nModified}`);
+//   // console.log(auction)
+// });
+
+// // Routine checking for delivering deadline (Every day at midnight)
 cron.schedule("0 0 * * *", async () => {
   // cron.schedule('*/5 * * * * *', async () => {
   const filter = {
@@ -88,12 +209,12 @@ cron.schedule("0 0 * * *", async () => {
     const newReport = await Report.create(report);
   }
   const billingsUpdate = await BillingInfo.updateMany(filter, update);
-  console.log(
-    `Found ${billingsUpdate.n} auctions past deliver deadline, Generated ${billingsUpdate.n} reports`
-  );
+  // console.log(
+  //   `[D: Delivery Deadline] Found ${billingsUpdate.n} auctions past deliver deadline, Generated ${billingsUpdate.n} reports.`
+  // );
 });
 
-// Routine checking for confirm item recieve deadline (Every day at midnight)
+// // Routine checking for confirm item recieve deadline (Every day at midnight)
 cron.schedule("0 0 * * *", async () => {
   const filter = {
     confirmItemRecieveDeadline: { $lt: new Date() },
@@ -103,7 +224,55 @@ cron.schedule("0 0 * * *", async () => {
     billingInfoStatus: completed,
   };
   const billingsUpdate = await BillingInfo.updateMany(filter, update);
-  console.log(
-    `Found ${billingsUpdate.n} auctions past item recieved confirmation deadline, Auto completed ${billingsUpdate.n} auctions`
-  );
+  // console.log(
+  //   `[D: Recieve Deadline] Found ${billingsUpdate.n} auctions past item recieved confirmation deadline, Auto completed ${billingsUpdate.n} auctions.`
+  // );
+});
+
+// Routine checking for auto-destroy auctions (Every day?)
+cron.schedule("0 0 * * *", async () => {
+// const destroyer = async ()=>{
+  const filter = {
+    autoDestroy: { $lt: new Date() },
+    auctionStatus: "finished"
+  };
+  const documentDestroyingList = await Auction.find(filter, '_id')
+  for (el of documentDestroyingList){
+    const documentDestroying = await Auction.findById(el._id)
+    // console.log(documentDestroying.billingHistoryID)
+    // console.log(typeof documentDestroying.billingHistoryID)  
+
+    // remove the document from finishedBiddingList, finishedAuctionList
+    const finishedBiddingListFilter = {
+      finishedBiddingList: mongoose.Types.ObjectId(documentDestroying._id)
+    }
+
+    const finishedAuctionListFilter = {
+      finishedAuctionList: mongoose.Types.ObjectId(documentDestroying._id)
+    }
+
+    const finishedBiddingListUpdate = {
+      $pull : {finishedBiddingList: mongoose.Types.ObjectId(documentDestroying._id)}
+    }
+
+    const finishedAuctionListUpdate = {
+      $pull : {finishedAuctionList: mongoose.Types.ObjectId(documentDestroying._id)}
+    }
+
+    await User.updateMany(finishedBiddingListFilter, finishedBiddingListUpdate)
+    await User.updateMany(finishedAuctionListFilter, finishedAuctionListUpdate)
+
+    // remove the corresponded billing info
+    await BillingInfo.findByIdAndDelete(documentDestroying.billingHistoryID)
+
+    // remove all the bid history
+    const deleteBidHistoryFilter = {
+      _id: {$in: documentDestroying.bidHistory}
+    }
+    await BidHistory.deleteMany(deleteBidHistoryFilter)
+
+    // finally remove the auction
+    await Auction.findByIdAndDelete(documentDestroying._id)
+  }
+  // console.log(`[D: auto destroy] Deleted ${documentDestroyingList.length} auctions`)
 });
