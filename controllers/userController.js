@@ -163,7 +163,7 @@ exports.myorder = catchAsync(async (req, res, next) => {
       queryString.push(mongoose.Types.ObjectId(el));
     }
   }
-
+  // console.log(queryString)
   // 3) Altered the response as the API specified
   let auctions = await Auction.find({
     _id: { $in: queryString },
@@ -193,10 +193,11 @@ exports.myorder = catchAsync(async (req, res, next) => {
       el.endDate = (el.endDate*1).toString()
       el.billingStatus = null;
     }
-    else{
+    else if(el.billingHistoryID){
       const bill = await BillingInfo.findById(el.billingHistoryID)
         .select("billingInfoStatus")
         .lean();
+      // console.log(el._id, el.billingHistoryID, bill)
       el.billingStatus = bill.billingInfoStatus;
       el.endDate = undefined
     }
