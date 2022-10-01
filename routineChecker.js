@@ -48,7 +48,7 @@ async function getAuctionThisHour() {
     ])
     hourlyCheckList.length = 0
     hourlyCheckList.push.apply(hourlyCheckList, auctions)
-    // console.log(`[H: Hourly Checklist] Found ${hourlyCheckList.length} auctions ending this hour.`)
+    console.log(`[H: Hourly Checklist] Found ${hourlyCheckList.length} auctions ending this hour.`)
 }
 getAuctionThisHour()
 // optimized Routine checking for Auctions ending:
@@ -62,7 +62,7 @@ cron.schedule("0 * * * *", getAuctionThisHour)
 cron.schedule("* * * * *", async() => {
     // check if there is an auction ending this hour
     if(hourlyCheckList.length === 0){
-        // console.log(`[M: End Auctions] No entry updated sinc enone end this hour.`)
+        console.log(`[M: End Auctions] No entry updated sinc enone end this hour.`)
         return;
     }
 
@@ -142,7 +142,7 @@ cron.schedule("* * * * *", async() => {
             cont = false
         }
     }
-    // console.log(`[M: End Auctions] ${editedEntries} auctions changed to waiting/finished.`)
+    console.log(`[M: End Auctions] ${editedEntries} auctions changed to waiting/finished.`)
 })
 
 // UNOPTIMIZED Routine checking for Auctions ending (Every start of a minute) 
@@ -209,9 +209,9 @@ cron.schedule("0 0 * * *", async () => {
     const newReport = await Report.create(report);
   }
   const billingsUpdate = await BillingInfo.updateMany(filter, update);
-  // console.log(
-  //   `[D: Delivery Deadline] Found ${billingsUpdate.n} auctions past deliver deadline, Generated ${billingsUpdate.n} reports.`
-  // );
+  console.log(
+    `[D: Delivery Deadline] Found ${billingsUpdate.n} auctions past deliver deadline, Generated ${billingsUpdate.n} reports.`
+  );
 });
 
 // // Routine checking for confirm item recieve deadline (Every day at midnight)
@@ -224,9 +224,9 @@ cron.schedule("0 0 * * *", async () => {
     billingInfoStatus: completed,
   };
   const billingsUpdate = await BillingInfo.updateMany(filter, update);
-  // console.log(
-  //   `[D: Recieve Deadline] Found ${billingsUpdate.n} auctions past item recieved confirmation deadline, Auto completed ${billingsUpdate.n} auctions.`
-  // );
+  console.log(
+    `[D: Recieve Deadline] Found ${billingsUpdate.n} auctions past item recieved confirmation deadline, Auto completed ${billingsUpdate.n} auctions.`
+  );
 });
 
 // Routine checking for auto-destroy auctions (Every day?)
@@ -274,5 +274,5 @@ cron.schedule("0 0 * * *", async () => {
     // finally remove the auction
     await Auction.findByIdAndDelete(documentDestroying._id)
   }
-  // console.log(`[D: auto destroy] Deleted ${documentDestroyingList.length} auctions`)
+  console.log(`[D: auto destroy] Deleted ${documentDestroyingList.length} auctions`)
 });
