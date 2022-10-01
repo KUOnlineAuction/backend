@@ -9,10 +9,10 @@ const readFile = promisify(fs.readFile);
 
 const getPicture = async(folder, filename, width=1000, height=1000) => {
     let picturePath
-    try{
-        picturePath = path.join(__dirname, '..', 'picture', folder, filename)
+    if(typeof filename === "string"){
+    picturePath = path.join(__dirname, '..', 'picture', folder, filename)
     }
-    catch (err) {
+    else{
         picturePath = path.join(__dirname, '..', 'picture', folder, 'default.jpeg')
     }
     const pictureContentBuffer = await readFile(picturePath).catch(async (err) => {
