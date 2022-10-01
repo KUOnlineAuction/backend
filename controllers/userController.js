@@ -163,7 +163,7 @@ exports.myorder = catchAsync(async (req, res, next) => {
       queryString.push(mongoose.Types.ObjectId(el));
     }
   }
-  console.log(queryString)
+  // console.log(queryString)
   // 3) Altered the response as the API specified
   let auctions = await Auction.find({
     _id: { $in: queryString },
