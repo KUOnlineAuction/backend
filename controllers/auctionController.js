@@ -212,6 +212,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
       },
     ]);
     auction.sort((a, b) => (a.timeRemaining > b.timeRemaining ? 1 : -1));
+    //filter less than 5 minute
     auction = auction.filter(
       (auction) => auction.timeRemaining >= 5 * 60 * 1000
     );
@@ -388,7 +389,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
   } else if (sort === "time_remaining") {
     auction.sort((a, b) => (a.timeRemaining > b.timeRemaining ? 1 : -1));
   } else {
-    auction.sort((a, b) => (a.currentPrice > b.currentPrice ? -1 : 1));
+    auction.sort((a, b) => (a.startDate > b.startDate ? -1 : 1));
   }
 
   let totalResult = auction.length;
