@@ -651,7 +651,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
     ? auction.startingPrice
     : auction.currentPrice;
   // 5 minute System currentPrice condition
-  if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
+  if (auction.endDate - Date.now() <= 5 * 60 * 1000 && isAlreadyBid5Minute) {
     if (
       bidHistory[0] &&
       auction.endDate - bidHistory[0].biddingDate <= 5 * 60 * 1000
