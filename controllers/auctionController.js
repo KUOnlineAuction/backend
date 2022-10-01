@@ -304,6 +304,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
         $match: {
           "productDetail.category": category,
           "productDetail.productName": name,
+          auctionStatus: "bidding",
         },
       },
       {
@@ -336,7 +337,10 @@ exports.getSearch = catchAsync(async (req, res, next) => {
     auction = await Auction.aggregate([
       { $unwind: "$productDetail" },
       {
-        $match: { "productDetail.category": category },
+        $match: {
+          "productDetail.category": category,
+          auctionStatus: "bidding",
+        },
       },
       {
         $project: {
@@ -385,11 +389,11 @@ exports.getSearch = catchAsync(async (req, res, next) => {
   } else if (sort === "lowest_bid") {
     auction.sort((a, b) => (a.currentPrice > b.currentPrice ? 1 : -1));
   } else if (sort === "newest") {
-    auction.sort((a, b) => (a.startDate > b.startDate ? -1 : 1));
+    auction.sort((a, b) => (a.startDate > b.startDate ? 1 : -1));
   } else if (sort === "time_remaining") {
     auction.sort((a, b) => (a.timeRemaining > b.timeRemaining ? 1 : -1));
   } else {
-    auction.sort((a, b) => (a.startDate > b.startDate ? -1 : 1));
+    auction.sort((a, b) => (a.startDate > b.startDate ? 1 : -1));
   }
 
   let totalResult = auction.length;
@@ -651,7 +655,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
     ? auction.startingPrice
     : auction.currentPrice;
   // 5 minute System currentPrice condition
-  if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
+  if (auction.endDate - Date.now() <= 5 * 60 * 1000 && isAlreadyBid5Minute) {
     if (
       bidHistory[0] &&
       auction.endDate - bidHistory[0].biddingDate <= 5 * 60 * 1000
