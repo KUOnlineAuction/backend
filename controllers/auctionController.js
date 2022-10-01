@@ -212,7 +212,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
       },
     ]);
     auction.sort((a, b) => (a.timeRemaining > b.timeRemaining ? 1 : -1));
-    auction.filter((auction) => auction.timeRemaining >= 0);
+    auction = auction.filter((auction) => auction.timeRemaining >= 0);
     auction.forEach((value) => {
       delete value._id;
       delete value.timeRemaining;
