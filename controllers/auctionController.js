@@ -666,6 +666,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
       productDetail: {
         productName: auction.productDetail.productName,
         description: auction.productDetail.description,
+        category: auction.productDetail.category,
         productPicture,
       },
       auctioneerID: auction.auctioneerID,

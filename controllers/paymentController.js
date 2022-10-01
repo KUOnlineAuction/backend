@@ -53,7 +53,7 @@ exports.postPayment = catchAsync(async (req, res, next) => {
 
   const slip = {
     slipPicture: pictureName,
-    slipDateTime: new Date(req.body.transferDate * 1000),
+    slipDateTime: new Date(req.body.transferDate * 1),
     slipAmount: req.body.value,
   };
 
