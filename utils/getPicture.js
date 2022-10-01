@@ -8,7 +8,13 @@ const sharp = require('sharp');
 const readFile = promisify(fs.readFile);
 
 const getPicture = async(folder, filename, width=1000, height=1000) => {
-    picturePath = path.join(__dirname, '..', 'picture', folder, filename)
+    let picturePath
+    try{
+        picturePath = path.join(__dirname, '..', 'picture', folder, filename)
+    }
+    catch (err) {
+        picturePath = path.join(__dirname, '..', 'picture', folder, 'default.jpeg')
+    }
     const pictureContentBuffer = await readFile(picturePath).catch(async (err) => {
         const defaultPicturePath = path.join(__dirname, '..', 'picture', folder, 'default.jpeg')
         return await readFile(defaultPicturePath)
