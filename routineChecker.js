@@ -27,12 +27,13 @@ mongoose
   });
 
 let hourlyCheckList = []
+let hourlyCheckListFive = []
 
 async function getAuctionThisHour() {
     const auctions = await Auction.aggregate([
       {
           $match: {
-              endDate: {$lt :(new Date(Date.now()+ 1000 * 60 * 60))},
+              endDate: {$lt :(new Date(Date.now()+ 1000 * 60 * 60 + 360000))},
               auctionStatus: "bidding"
           }
       },
@@ -48,6 +49,8 @@ async function getAuctionThisHour() {
     ])
     hourlyCheckList.length = 0
     hourlyCheckList.push.apply(hourlyCheckList, auctions)
+    hourlyCheckListFive.length = 0
+    hourlyCheckListFive.push.apply(hourlyCheckListFive, auctions)
     console.log(`[H: Hourly Checklist] Found ${hourlyCheckList.length} auctions ending this hour.`)
 }
 getAuctionThisHour()
@@ -99,6 +102,12 @@ cron.schedule("* * * * *", async() => {
                 const createdBillingInfo = await BillingInfo.create(newBillingInfo)
                 updatedAuction.billingHistoryID = createdBillingInfo._id
                 await updatedAuction.save({ validateBeforeSave: false })
+                await User.findByIdAndUpdate(updatedAuction.auctioneerID, {
+                  $push: {"billingList": createdBillingInfo._id}
+                })
+                await User.findByIdAndUpdate(updatedAuction.currentWinnerID, {
+                  $push: {"billingList": createdBillingInfo._id}
+                })
                 // remove from active bidding list for user
 
                 const userFilter = {
@@ -129,13 +138,6 @@ cron.schedule("* * * * *", async() => {
             await User.updateOne(auctioneerFilter, updateActiveAuctionList)
             
             // remove this auction from any "following list" anyways
-            const updateQuery = {
-                followingList: mongoose.Types.ObjectId(updatedAuction._id)
-            }
-            const updateField = {
-                $pull: {"followingList": updatedAuction._id}
-            }
-            await User.updateMany(updateQuery, updateField)
             editedEntries++
             hourlyCheckList.shift()
         } else {
@@ -276,3 +278,36 @@ cron.schedule("0 0 * * *", async () => {
   }
   console.log(`[D: auto destroy] Deleted ${documentDestroyingList.length} auctions`)
 });
+
+// follow list remover
+cron.schedule("* * * * *", async () => {
+  if(hourlyCheckListFive.length === 0){
+    console.log(`[M: Follow remove 5 minute] No entry updated since none end this hour.`)
+    return;
+  }
+  let cont = true
+  let count = 0
+  while(cont){
+    if (hourlyCheckListFive.length == 0){
+      cont = false
+      break
+  }
+  const checkingAuction = hourlyCheckListFive[0]
+
+  // update the first entry of the list
+    if(checkingAuction.endDate < (Date.now() + 5 * 60 * 1000 + 1 )){
+      const updateQuery = {
+        followingList: mongoose.Types.ObjectId(checkingAuction._id)
+      }
+      const updateField = {
+        $pull: {"followingList": checkingAuction._id}
+      }
+      await User.updateMany(updateQuery, updateField)
+      hourlyCheckListFive.shift()
+      count++
+    } else {
+      cont = false
+    } 
+  }
+  console.log(`[M: Follow remove 5 minute] ${count} entries remove from user(s) follow list.`)
+})
