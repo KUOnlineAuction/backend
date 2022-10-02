@@ -316,3 +316,99 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
     data: user,
   });
 });
+
+exports.myReviews = catchAsync(async (req, res, next) => {
+  let currentUserReviews = await User.findById(req.user.id).select("reviewList")
+  // console.log(currentUserReviews)
+  let data = await Review.aggregate([
+    {
+      $match: {
+        _id: {$in : currentUserReviews.reviewList}
+      }
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "reviewerID",
+        foreignField: "_id",
+        as: "commenter",
+      }
+    },
+    {
+      $set: { commenter: { $arrayElemAt: ["$commenter.displayName", 0] } }
+    },
+    {
+      $project: {
+        productName: 1,
+        commenter: 1,
+        comment: 1,
+        _id: 0
+      }
+    }
+  ])
+  // console.log(data)
+  res.status(200).json({
+    status: "success",
+    data
+  });
+})
+
+exports.myFollowing = catchAsync(async (req, res, next) => {
+  let auctionIDs = await User.findById(req.user.id).select('followingList')
+  auctionIDs = auctionIDs.followingList
+  let auctions = await Auction.aggregate([
+    {
+      $match : {
+        _id: {$in: auctionIDs}
+      }
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "auctioneerID",
+        foreignField: "_id",
+        as: "auctioneer",
+      }
+    },
+    {
+      $set: {
+        auctioneerName: { $arrayElemAt: ["$auctioneer.displayName", 0]},
+        productPicture: { $arrayElemAt: ["$productDetail.productPicture", 0]},
+        productName: "$productDetail.productName",
+        highestBid: "$currentPrice",
+        auctionID: "$_id"
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        auctionID: 1,
+        auctioneerName: 1,
+        productName: 1,
+        highestBid: 1,
+        productPicture: 1,
+        endDate: 1
+      }
+    },
+    {
+      $sort: {
+        endDate: 1
+      }
+    }
+  ])
+  // look up the picture and fix date format
+  for (el of auctions){
+    const getPic = await getPicture("productPicture", el.profilePicture)
+    if(!getPic){
+      return next(new AppError(500, "Error getting the picture."))
+    }
+    el.productPicture = getPic
+    el.endDate = (el.endDate*1).toString()
+  }
+
+  // console.log(auctions)
+  res.status(200).json({
+    status: "success",
+    data: auctions
+  });
+})
