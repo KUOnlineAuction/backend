@@ -171,7 +171,7 @@ exports.myorder = catchAsync(async (req, res, next) => {
     .select(
       "auctioneerID productDetail endDate currentPrice auctionStatus billingHistoryID bidHistory"
     )
-    .sort("endDate")
+    .sort({"endDate":1})
     .lean();
 
   for (let el of auctions) {
@@ -199,6 +199,8 @@ exports.myorder = catchAsync(async (req, res, next) => {
         .lean();
       // console.log(el._id, el.billingHistoryID, bill)
       el.billingStatus = bill.billingInfoStatus;
+      el.endDate = undefined
+    } else{
       el.endDate = undefined
     }
 
