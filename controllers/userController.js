@@ -106,6 +106,9 @@ exports.editProfle = catchAsync(async (req, res, next) => {
     "phoneNumber",
     "address",
     "accountDescription",
+    "bankNO",
+    "bankName",
+    "bankAccountName"
   ];
   for (let el of updatedFields) {
     if (req.body[el]) {
