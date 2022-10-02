@@ -57,6 +57,12 @@ exports.postPayment = catchAsync(async (req, res, next) => {
     slipAmount: req.body.value,
   };
 
+  const billingBankAccount = {
+    bankNO: req.body.bankAccountNO,
+    bankName: req.body.bankName,
+    auctioneerName: req.body.bankAccountName,
+  };
+
   billingInfo.slip = slip;
   billingInfo.bidderPhoneNumber = req.body.phoneNumber;
   billingInfo.receiverName = req.body.bidderName;
