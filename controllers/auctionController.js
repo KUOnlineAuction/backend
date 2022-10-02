@@ -13,7 +13,7 @@ const mongoose = require("mongoose");
 //Hepler Function
 /**
  * @desc calcuate bidStep by currentPrice
- * @param {Number} incomingBid 
+ * @param {Number} incomingBid
  * @returns bidStep
  */
 const defaultMinimumBid = (incomingBid) => {
@@ -25,9 +25,9 @@ const defaultMinimumBid = (incomingBid) => {
 };
 
 /**
- * @desc Censored input string 
- * @param {String} name 
- * @returns censored name 
+ * @desc Censored input string
+ * @param {String} name
+ * @returns censored name
  */
 const censoredName = (name) => {
   let censored = `${name[0]}******${name[name.length - 1]}`;
@@ -169,12 +169,20 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     const distinctAuctionIDs = auctionIDs.filter(
       (v, i, a) => a.indexOf(v) === i
     );
+    console.log(distinctAuctionIDs);
 
     // Find Auction from distinct auctionID
     auction = await Auction.find({
       _id: { $in: distinctAuctionIDs },
       auctionStatus: "bidding",
       endDate: { $gt: Date.now() },
+    });
+
+    auction.sort(function (a, b) {
+      return (
+        distinctAuctionIDs.indexOf(String(a._id)) -
+        distinctAuctionIDs.indexOf(String(b._id))
+      );
     });
 
     // Formated response value
@@ -189,6 +197,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
         endDate: String(new Date(value.endDate).getTime()),
         isWinning: String(value.currentWinnerID) === decoded.id,
       };
+      console.log(tempVal);
       formatedAuction.push(tempVal);
     });
   } else if (filter === "my_following_list") {
