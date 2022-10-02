@@ -344,6 +344,7 @@ exports.myReviews = catchAsync(async (req, res, next) => {
         productName: 1,
         commenter: 1,
         comment: 1,
+        rating: 1,
         _id: 0
       }
     }
