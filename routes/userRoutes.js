@@ -21,5 +21,7 @@ router.get('/myprofile',authController.protect, userController.myProfile) // don
 router.patch('/edit', authController.protect ,userController.editProfle) // done
 router.get('/myorder', authController.protect,userController.myorder) // done
 router.get('/profile/:id', userController.aucProfile) // done
+router.get('/myreviews', authController.protect, userController.myReviews) // not done
+router.get('/myfollowing', authController.protect, userController.myFollowing) // not done
 
 module.exports = router
