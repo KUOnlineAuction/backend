@@ -13,6 +13,9 @@ exports.getBillingInfo = catchAsync(async (req, res, next) => {
   });
   const auction = await Auction.findById(req.params.auction_id);
   if (!auction) return next(new AppError("Cannot find auction", 400));
+  const auctioneer = await User.findOne({
+    auctioneerID: req.params.auction_id,
+  });
   const info = {
     productName: auction.productDetail.productName,
     productPicture: await getPicture(
@@ -20,6 +23,7 @@ exports.getBillingInfo = catchAsync(async (req, res, next) => {
       auction.productDetail.productPicture[0]
     ),
     auctioneerID: auction.auctioneerID,
+    auctioneerName: auctioneer.displayName,
     winningPrice: billingInfo.winningPrice,
     bidderName: billingInfo.receiverName || null,
     bidderAddress: billingInfo.address || null,
