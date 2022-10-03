@@ -169,7 +169,6 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
     const distinctAuctionIDs = auctionIDs.filter(
       (v, i, a) => a.indexOf(v) === i
     );
-    console.log(distinctAuctionIDs);
 
     // Find Auction from distinct auctionID
     auction = await Auction.find({
@@ -197,7 +196,6 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
         endDate: String(new Date(value.endDate).getTime()),
         isWinning: String(value.currentWinnerID) === decoded.id,
       };
-      console.log(tempVal);
       formatedAuction.push(tempVal);
     });
   } else if (filter === "my_following_list") {
