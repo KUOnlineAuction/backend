@@ -7,7 +7,7 @@ const sharp = require('sharp');
 
 const readFile = promisify(fs.readFile);
 
-const getPicture = async(folder, filename, width=1000, height=1000) => {
+const getPicture = async(folder, filename, width=1000, height=1000, original=false) => {
     let picturePath
     if(typeof filename === "string"){
     picturePath = path.join(__dirname, '..', 'picture', folder, filename)
@@ -22,9 +22,16 @@ const getPicture = async(folder, filename, width=1000, height=1000) => {
     if(!pictureContentBuffer){
         return undefined
     }
-    const pictureContent = await sharp(pictureContentBuffer).resize(width,height).toBuffer().catch((err)=>{
-        console.log(`getPicture processed wrongly by sharp, maybe the file is no longer the valid picture or sharp error`);
-    })
+    let pictureContent
+    if(original){
+        pictureContent = await sharp(pictureContentBuffer).toBuffer().catch((err)=>{
+            console.log(`getPicture processed wrongly by sharp, maybe the file is no longer the valid picture or sharp error`);
+        })
+    } else {
+        pictureContent = await sharp(pictureContentBuffer).resize(width,height).toBuffer().catch((err)=>{
+            console.log(`getPicture processed wrongly by sharp, maybe the file is no longer the valid picture or sharp error`);
+        })
+    }
     if(!pictureContent){
         return undefined
     }
