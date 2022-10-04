@@ -176,7 +176,7 @@ exports.getTransacDetail = catchAsync(async (req, res, next) => {
     ]);
     detail = detail[0];
     detail.transferDataTime = (detail.transferDataTime*1).toString()
-    const slipPic = await getPicture("slipPicture", detail.transactionSlip);
+    const slipPic = await getPicture("slipPicture", detail.transactionSlip, null, null, true);
     if (!slipPic) {
       return next(new AppError("Couldn't find the picture"), 500);
     }
@@ -209,10 +209,7 @@ exports.getTransacDetail = catchAsync(async (req, res, next) => {
       },
     ]);
     detail = detail[0];
-    const packagePic = await getPicture(
-      "packagePicture",
-      detail.packagePicture
-    );
+    const packagePic = await getPicture("packagePicture",detail.packagePicture, null, null, true);
     if (!packagePic) {
       return next(new AppError("Couldn't find the picture"), 500);
     }
