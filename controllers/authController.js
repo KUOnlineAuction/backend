@@ -119,16 +119,16 @@ exports.login = catchAsync(async(req, res, next) => {
 
     const user = await User.findOne({email}).select('+password')
 
+    if(!user || !(await user.correctPassword(password, user.password))){
+        return next(new AppError('Incorrect email or password', 401))
+    }
+
     if(user.userStatus === 'notConfirm'){
         return next(new AppError("The user hasn't verifed the email yet.",401))
     }
 
     if(user.userStatus === 'blacklist'){
         return next(new AppError("This account has been blacklisted.",401))
-    }
-
-    if(!user || !(await user.correctPassword(password, user.password))){
-        return next(new AppError('Incorrect email or password', 401))
     }
 
     user.passwordInvalidDate = undefined
