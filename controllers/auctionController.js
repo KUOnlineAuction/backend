@@ -844,8 +844,13 @@ exports.postBid = catchAsync(async (req, res, next) => {
   const auction = await Auction.findById(req.params.auction_id);
 
   // Error Handler
-  // If auction already in 5 minute system user can only bid once
+
+  // You cannot bid your own auction
+
+  if (auction.auctioneerID === user._id)
+    return next(new AppError("You cannot bid your own auction", 400));
   if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
+    // If auction already in 5 minute system user can only bid once
     const bidHistory = await BidHistory.find({
       bidderID: user._id,
       auctionID: auction._id,
