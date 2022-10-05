@@ -41,7 +41,10 @@ exports.getBillingInfo = catchAsync(async (req, res, next) => {
       "packagePicture",
       billingInfo.deliverInfo
         ? billingInfo.deliverInfo.packagePicture
-        : "default.jpeg"
+        : "default.jpeg",
+      null,
+      null,
+      true
     ),
     billingInfoStatus: billingInfo.billingInfoStatus,
     isAuctioneer: decoded.id === String(auction.auctioneerID),
