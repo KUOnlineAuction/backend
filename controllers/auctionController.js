@@ -738,20 +738,7 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
   if (!isValidObjectId(req.params.auction_id))
     return next(new AppError("Please enter valid mongoDB ID", 400));
 
-  let token;
-  // 1) Get the token and check if it's exists
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  }
-  let decoded = {};
-  if (!token) {
-    decoded.id = undefined;
-  } else {
-    decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
-  }
+  let decoded = getUserIdFromBearer(req);
 
   const auction_id = req.params.auction_id;
   const auction = await Auction.findById(auction_id)
@@ -763,6 +750,7 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
   // Close bid and not bid yet or not login
   if (
     !auction.isOpenBid &&
+    user &&
     (!user.activeBiddingList.includes(auction_id) || !decoded)
   ) {
     return next(
@@ -773,39 +761,74 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
     );
   }
 
-  // เงื่อนไข Bidhistory ่ก่อน 5 นาที และหลัง 5 นาที
-  let bidHistory = auction.bidHistory;
+  // // เงื่อนไข Bidhistory ่ก่อน 5 นาที และหลัง 5 นาที
+  // let bidHistory = auction.bidHistory;
 
-  if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
-    // auction enter 5 minute system
-    bidHistory = bidHistory.filter((value, index, arr) => {
-      return auction.endDate - value.biddingDate > 5 * 60 * 1000;
-    });
-  }
-  const formatBidHistory = [];
-  bidHistory.forEach(async (value, index, arr) => {
-    const user = await User.findById(value.bidderID);
-    formatBidHistory.push({
-      bidderName: censoredName(user.displayName),
-      biddingDate: String(new Date(value.biddingDate).getTime()),
-      biddingPrice: value.biddingPrice,
-    });
+  // if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
+  //   // auction enter 5 minute system
+  //
+  // }
+  // const formatBidHistory = [];
 
-    // Please come and fixed this in the future
-    if (index === bidHistory.length - 1 || bidHistory.length === 0) {
-      res.status(200).json({
-        status: "success",
-        bidHistory: formatBidHistory,
-      });
-    }
+  let bidHistory = await BidHistory.aggregate([
+    {
+      $match: {
+        auctionID: auction._id,
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "bidderID",
+        foreignField: "_id",
+        as: "bidder",
+      },
+    },
+    {
+      $project: {
+        bidderName: "$bidder.displayName",
+        biddingDate: "$biddingDate",
+        biddingPrice: "$biddingPrice",
+      },
+    },
+    { $set: { bidderName: { $arrayElemAt: ["$bidderName", 0] } } },
+  ]);
+
+  bidHistory = bidHistory.filter((value, index, arr) => {
+    return auction.endDate - value.biddingDate > 5 * 60 * 1000;
   });
-  // If there is no bid History
-  if (bidHistory.length === 0) {
-    res.status(200).json({
-      status: "success",
-      bidHistory: formatBidHistory,
-    });
-  }
+  bidHistory.sort((a, b) => {
+    return a.biddingPrice < b.biddingPrice;
+  });
+
+  res.status(200).json({
+    status: "success",
+    data: bidHistory,
+  });
+
+  // bidHistory.forEach(async (value, index, arr) => {
+  //   const user = await User.findById(value.bidderID);
+  //   formatBidHistory.push({
+  //     bidderName: censoredName(user.displayName),
+  //     biddingDate: String(new Date(value.biddingDate).getTime()),
+  //     biddingPrice: value.biddingPrice,
+  //   });
+
+  //   // Please come and fixed this in the future
+  //   if (index === bidHistory.length - 1 || bidHistory.length === 0) {
+  //     res.status(200).json({
+  //       status: "success",
+  //       bidHistory: formatBidHistory,
+  //     });
+  //   }
+  // });
+  // // If there is no bid History
+  // if (bidHistory.length === 0) {
+  //   res.status(200).json({
+  //     status: "success",
+  //     bidHistory: formatBidHistory,
+  //   });
+  //   }
 });
 
 // Refresh (Finished)
