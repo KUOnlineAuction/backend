@@ -44,7 +44,7 @@ exports.getBillingInfo = catchAsync(async (req, res, next) => {
         : "default.jpeg"
     ),
     billingInfoStatus: billingInfo.billingInfoStatus,
-    isAuctioneer: decoded.id === Stirng(auction.auctioneerID),
+    isAuctioneer: decoded.id === String(auction.auctioneerID),
   };
 
   res.status(200).json({
