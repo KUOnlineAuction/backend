@@ -6,7 +6,7 @@ const Badge = require("./../models/badgeModel");
 const User = require("./../models/userModel");
 const Review = require("./../models/reviewModel");
 const Auction = require("./../models/auctionModel");
-const BillingInfo = require("./../models/billingInfoModel");
+const { BillingInfo } = require("./../models/billingInfoModel");
 const BidHistory = require("./../models/bidHistoryModel");
 const catchAsync = require("./../utils/catchAsync");
 const { promisify } = require("util");
@@ -96,6 +96,7 @@ exports.editProfle = catchAsync(async (req, res, next) => {
       null,
       (original = true)
     );
+    user.profilePicture = filename;
   }
 
   // 2.2) then the rest
@@ -105,18 +106,20 @@ exports.editProfle = catchAsync(async (req, res, next) => {
     "phoneNumber",
     "address",
     "accountDescription",
+    "bankNO",
+    "bankName",
+    "bankAccountName"
   ];
   for (let el of updatedFields) {
     if (req.body[el]) {
       user[el] = req.body[el];
     }
-    user.profilePicture = filename
   }
   await user.save();
   // await user.save()
   // console.log(user);
   res.status(200).json({
-    result: "success",
+    status: "success",
   });
 });
 
@@ -163,22 +166,24 @@ exports.myorder = catchAsync(async (req, res, next) => {
       queryString.push(mongoose.Types.ObjectId(el));
     }
   }
-
+  // console.log(queryString)
   // 3) Altered the response as the API specified
   let auctions = await Auction.find({
     _id: { $in: queryString },
   })
     .select(
-      "productDetail endDate currentPrice auctionStatus billingHistoryID bidHistory"
+      "auctioneerID productDetail endDate currentPrice auctionStatus billingHistoryID bidHistory"
     )
-    .sort("endDate")
+    .sort({"endDate":1})
     .lean();
 
   for (let el of auctions) {
     el.auctionID = el._id;
+    const auctioneerDisplayname = await User.findById(el.auctioneerID)
+    el.auctioneerDisplayname = auctioneerDisplayname.displayName
     // comment next line if picture hasn't been implemented
     const aucPic = await getPicture(
-      "auctionPicture",
+      "productPicture",
       el.productDetail.productPicture[0]
     );
     if (!aucPic) {
@@ -187,13 +192,19 @@ exports.myorder = catchAsync(async (req, res, next) => {
     el.productPicture = aucPic;
     el.productName = el.productDetail.productName;
     el.lastBid = el.currentPrice;
-    if (el.auctionStatus === "waiting") {
+    if(el.auctionStatus === "bidding"){
+      el.endDate = (el.endDate*1).toString()
+      el.billingStatus = null;
+    }
+    else if(el.billingHistoryID){
       const bill = await BillingInfo.findById(el.billingHistoryID)
         .select("billingInfoStatus")
         .lean();
+      // console.log(el._id, el.billingHistoryID, bill)
       el.billingStatus = bill.billingInfoStatus;
-    } else {
-      el.billingStatus = null;
+      el.endDate = undefined
+    } else{
+      el.endDate = undefined
     }
 
     if (req.query.list === "mybid" && el.auctionStatus === "bidding") {
@@ -215,7 +226,6 @@ exports.myorder = catchAsync(async (req, res, next) => {
       "productDetail",
       "currentPrice",
       "billingHistoryID",
-      "endDate",
       "bidHistory",
     ];
     for (field of excludedField) {
@@ -239,7 +249,6 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
   if (!user) {
     return next(new AppError("The user does not exists", 400));
   }
-
 
   // 2) get the badges
   let badgeNames = [];
@@ -296,24 +305,13 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
   for (let el of auctions) {
     // comment next line if picture hasn't been implemented
     el.productPicture = await getPicture(
-      "auctionPicture",
+      "productPicture",
       el.productDetail.productPicture[0]
     );
     el.productName = el.productDetail.productName;
     el.productDetail._id = undefined;
     el.productDetail = undefined;
-  }
-
-  auctions = await Auction.find({
-    '_id': { $in: queryString }
-  }).select('productDetail endDate currentPrice').sort('endDate').limit(15).lean()
-
-  for (let el of auctions) {
-    // comment next line if picture hasn't been implemented
-    el.productPicture = await getPicture('auctionPicture', el.productDetail.productPicture[0])
-    el.productName = el.productDetail.productName
-    el.productDetail._id = undefined
-    el.productDetail = undefined
+    el.endDate = (el.endDate*1).toString()
   }
 
   user.activeAuctionList = auctions;
@@ -323,3 +321,100 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
     data: user,
   });
 });
+
+exports.myReviews = catchAsync(async (req, res, next) => {
+  let currentUserReviews = await User.findById(req.user.id).select("reviewList")
+  // console.log(currentUserReviews)
+  let data = await Review.aggregate([
+    {
+      $match: {
+        _id: {$in : currentUserReviews.reviewList}
+      }
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "reviewerID",
+        foreignField: "_id",
+        as: "commenter",
+      }
+    },
+    {
+      $set: { commenter: { $arrayElemAt: ["$commenter.displayName", 0] } }
+    },
+    {
+      $project: {
+        productName: 1,
+        commenter: 1,
+        comment: 1,
+        rating: 1,
+        _id: 0
+      }
+    }
+  ])
+  // console.log(data)
+  res.status(200).json({
+    status: "success",
+    data
+  });
+})
+
+exports.myFollowing = catchAsync(async (req, res, next) => {
+  let auctionIDs = await User.findById(req.user.id).select('followingList')
+  auctionIDs = auctionIDs.followingList
+  let auctions = await Auction.aggregate([
+    {
+      $match : {
+        _id: {$in: auctionIDs}
+      }
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "auctioneerID",
+        foreignField: "_id",
+        as: "auctioneer",
+      }
+    },
+    {
+      $set: {
+        auctioneerName: { $arrayElemAt: ["$auctioneer.displayName", 0]},
+        productPicture: { $arrayElemAt: ["$productDetail.productPicture", 0]},
+        productName: "$productDetail.productName",
+        highestBid: "$currentPrice",
+        auctionID: "$_id"
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        auctionID: 1,
+        auctioneerName: 1,
+        productName: 1,
+        highestBid: 1,
+        productPicture: 1,
+        endDate: 1
+      }
+    },
+    {
+      $sort: {
+        endDate: 1
+      }
+    }
+  ])
+  // look up the picture and fix date format
+  for (el of auctions){
+    const getPic = await getPicture("productPicture", el.profilePicture)
+    if(!getPic){
+      return next(new AppError(500, "Error getting the picture."))
+    }
+    el.productPicture = getPic
+    el.endDate = (el.endDate*1).toString()
+  }
+
+  // console.log(auctions)
+  res.status(200).json({
+    status: "success",
+    data: auctions
+  });
+})

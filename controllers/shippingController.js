@@ -42,29 +42,26 @@ exports.createDelivery = catchAsync(async (req, res, next) => {
 //     "shippingCompany" : "Thailand Post"
 
 exports.getTrackingStatus = catchAsync(async (req, res, next) => {
-  // const auctionID = await Auction.findById(req.params.auction_id);
-  // const auctioneerName = await User.findById(auctionID.auctioneerID).displayName;
-  // const billingInfo = await BilllingInfo.findById()
-  // const TrackingInfo = {
-  // 	productName: auctionID.productDetail.productName,
-  // 	auctioneerName: auctioneerName,
-  // 	delivery: {
-  // 		pacakepicture:
-  // 			trackingNumber:
-  // 		shippingCompany:
-  // 	}
-  // }
-
-  const auctionID = await Auction.findById(req.params.auction_id);
-  const billingInfo = await BillingInfo.find({
+  const billingInfo = await BillingInfo.findOne({
     auctionID: req.params.auction_id,
   });
+  const auction = await Auction.findById(req.params.auction_id);
+  const auctioneer = await User.findById(auction.auctioneerID);
 
   const trackingInfo = {
-    productName: auction,
-  };
+    productName: auction.productDetail.productName,
+    auctioneerName: auctioneer.displayName,
+    delivery: {
+      packagePicture: await getPicture(
+        "packagePicture",
+        billingInfo.deliverInfo.packagePicture
+      ),
 
-  res.status(201).json({
+      trackingNumber: billingInfo.deliverInfo.trackingNumber,
+      shippingCompany: billingInfo.deliverInfo.shippingCompany,
+    },
+  };
+  res.status(200).json({
     status: "success",
     data: {
       trackingInfo,
@@ -73,7 +70,14 @@ exports.getTrackingStatus = catchAsync(async (req, res, next) => {
 });
 
 exports.confirmDelivery = catchAsync(async (req, res, next) => {
-  const confirmStatus = await billingInfo.billingInfoStatus.create({
-    confirm: "true",
+  const billingInfo = await BillingInfo.find({
+    auctionID: req.params.auction_id,
+  });
+  billingInfo.billingInfoStatus = req.body.confirm
+    ? "waitingAdminPayment"
+    : "completed";
+  billingInfo.save();
+  res.status(201).json({
+    status: "success",
   });
 });
