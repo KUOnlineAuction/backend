@@ -14,8 +14,8 @@ const categoryTypesEnum = [
   "Handbags",
   "Miscellaneous",
 ];
-const productNameMaxLength = 30;
-const productDesciptionMaxLength = 200;
+const productNameMaxLength = 100;
+const productDesciptionMaxLength = 2000;
 
 const defaultMinimumBid = (incomingBid) => {
   const digitCount = Math.ceil(Math.log10(incomingBid));
