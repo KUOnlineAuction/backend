@@ -17,6 +17,8 @@ exports.getBillingInfo = catchAsync(async (req, res, next) => {
     _id: auction.auctioneerID,
   });
   if (!auctioneer) return next(new AppError("Cannot find auctioneer", 400));
+  const decoded = req.user;
+
   const info = {
     productName: auction.productDetail.productName,
     productPicture: await getPicture(
@@ -42,6 +44,7 @@ exports.getBillingInfo = catchAsync(async (req, res, next) => {
         : "default.jpeg"
     ),
     billingInfoStatus: billingInfo.billingInfoStatus,
+    isAuctioneer: decoded.id === Stirng(auction.auctioneerID),
   };
 
   res.status(200).json({
