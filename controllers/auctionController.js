@@ -810,10 +810,7 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     status: "success",
-    data: {
-      bidHistory,
-      transactionCount: bidHistory.length,
-    },
+    data: bidHistory,
   });
 
   // bidHistory.forEach(async (value, index, arr) => {
