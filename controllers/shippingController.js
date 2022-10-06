@@ -79,12 +79,14 @@ exports.getTrackingStatus = catchAsync(async (req, res, next) => {
 });
 
 exports.confirmDelivery = catchAsync(async (req, res, next) => {
-  const billingInfo = await BillingInfo.find({
+  const billingInfo = await BillingInfo.findOne({
     auctionID: req.params.auction_id,
   });
+  if (!billingInfo) return next(new AppError("BillingInfo not found", 400));
   billingInfo.billingInfoStatus = req.body.confirm
     ? "waitingAdminPayment"
     : "completed";
+
   billingInfo.save();
   res.status(201).json({
     status: "success",
