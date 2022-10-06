@@ -295,6 +295,34 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
       value.endDate = String(new Date(value.endDate).getTime());
     });
     formatedAuction = auction;
+  } else if (filter === "auctioneer") {
+    const user = await User.findById(auctioneer);
+    user.activeAuctionList;
+    auction = await Auction.aggregate([
+      {
+        $match: { _id: { $in: user.activeAuctionList } },
+      },
+      {
+        $sort: { endDate: 1 },g
+      },
+      {
+        $project: {
+          auctionID: "$_id",
+          coverPicture: { $arrayElemAt: ["$productDetail.productPicture", 0] },
+          productName: "$productDetail.productName",
+          currentPrice: 1,
+          endDate: 1,
+          isWinning: {
+            $eq: ["$currentWinnerID", { $toObjectId: decoded.id }],
+          },
+        },
+      },
+    ]);
+    auction.forEach((value) => {
+      value.coverPicture = value.coverPicture[0] || "default.jpeg";
+      value.endDate = String(new Date(value.endDate).getTime());
+    });
+    formatedAuction = auction;
   }
 
   formatedAuction = formatedAuction.slice(0, 15); // Get First 15 Auctions
