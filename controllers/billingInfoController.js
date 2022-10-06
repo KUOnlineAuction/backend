@@ -13,9 +13,12 @@ exports.getBillingInfo = catchAsync(async (req, res, next) => {
   });
   const auction = await Auction.findById(req.params.auction_id);
   if (!auction) return next(new AppError("Cannot find auction", 400));
-  const auctioneer = await User.findOne({
-    auctioneerID: req.params.auction_id,
+  const auctioneer = await User.findById({
+    _id: auction.auctioneerID,
   });
+  if (!auctioneer) return next(new AppError("Cannot find auctioneer", 400));
+  const decoded = req.user;
+
   const info = {
     productName: auction.productDetail.productName,
     productPicture: await getPicture(
@@ -38,9 +41,13 @@ exports.getBillingInfo = catchAsync(async (req, res, next) => {
       "packagePicture",
       billingInfo.deliverInfo
         ? billingInfo.deliverInfo.packagePicture
-        : "default.jpeg"
+        : "default.jpeg",
+      null,
+      null,
+      true
     ),
     billingInfoStatus: billingInfo.billingInfoStatus,
+    isAuctioneer: decoded.id === String(auction.auctioneerID),
   };
 
   res.status(200).json({
