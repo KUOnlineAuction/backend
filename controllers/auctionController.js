@@ -800,10 +800,20 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
   bidHistory.sort((a, b) => {
     return a.biddingPrice < b.biddingPrice;
   });
+  bidHistory = bidHistory.map((value, index, arr) => {
+    return {
+      bidderName: censoredName(value.bidderName),
+      biddingDate: String(value.biddingDate.getTime()),
+      biddingPrice: value.biddingPrice,
+    };
+  });
 
   res.status(200).json({
     status: "success",
-    data: bidHistory,
+    data: {
+      bidHistory,
+      transactionCount: bidHistory.length,
+    },
   });
 
   // bidHistory.forEach(async (value, index, arr) => {
