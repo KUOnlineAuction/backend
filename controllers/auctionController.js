@@ -303,7 +303,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
         $match: { _id: { $in: user.activeAuctionList } },
       },
       {
-        $sort: { endDate: 1 },g
+        $sort: { endDate: 1 },
       },
       {
         $project: {
