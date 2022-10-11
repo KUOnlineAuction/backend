@@ -619,7 +619,7 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 
   // expected price must higher than starting price
   if (req.body.startingPrice >= req.body.expectedPrice)
-    return next(new AppError("Expected Price must higher than starting price"))
+    return next(new AppError("Expected Price must higher than starting price", 401));
 
   // Data Validation
   // endDate mustn't be a past
