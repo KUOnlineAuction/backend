@@ -20,7 +20,7 @@ const defaultMinimumBid = (incomingBid) => {
   const digitCount = Math.ceil(Math.log10(incomingBid));
   return incomingBid >= 5000
     ? Math.pow(10, digitCount - 3) *
-        Math.ceil(incomingBid / Math.pow(10, digitCount - 1))
+    Math.ceil(incomingBid / Math.pow(10, digitCount - 1))
     : 50;
 };
 
@@ -603,6 +603,10 @@ exports.postAuction = catchAsync(async (req, res, next) => {
   if (!user) {
     return next(AppError("User not found"), 400);
   }
+
+  // expected price must higher than starting price
+  if (req.body.startingPrice >= req.body.expectedPrice)
+    return next(new AppError("Expected Price must higher than starting price", 401));
 
   // Data Validation
   // endDate mustn't be a past
