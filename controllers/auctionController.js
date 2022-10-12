@@ -704,11 +704,11 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
     user.rating
   );
   let isAlreadyBid5Minute = false;
-  const bidHistoryBefore5 = await BidHistory.find({
+  let bidHistoryBefore5 = await BidHistory.find({
     auctionID: auctionId,
   }).sort({ biddingDate: -1 });
 
-  bidHistoryBefore5.filter(
+  bidHistoryBefore5 = bidHistoryBefore5.filter(
     (bidHistory) => bidHistory.biddingDate < auction.endDate - 5 * 60 * 1000
   );
 
