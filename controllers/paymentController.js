@@ -17,6 +17,11 @@ exports.getPayment = catchAsync(async (req, res, next) => {
   const auction_id = req.params.auction_id;
   const billingInfo = await BillingInfo.findOne({ auctionID: auction_id });
   const auction = await Auction.findById(auction_id);
+  //Check if it is your auction
+  if (auction.currentWinnerID != req.user.id)
+    return next("This is not your winning auction", 400);
+  if (auction.auctionStatus === "waitingForPayment")
+    return next("Auction is already paid or not ended");
   if (!auction) return next(new AppError("Auction not found"), 400);
   const auctioneer = await User.findById(auction.auctioneerID);
   if (!auctioneer) return next(new AppError("Auctioneer not found"), 400);
