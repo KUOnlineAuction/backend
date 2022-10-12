@@ -42,7 +42,7 @@ exports.postPayment = catchAsync(async (req, res, next) => {
   const pictureName = `${billingInfo._id}.jpeg`;
 
   savePicture(
-    req.body.slipPicture[0],
+    req.body.slipPicture,
     "slipPicture",
     pictureName,
     null,
@@ -53,8 +53,14 @@ exports.postPayment = catchAsync(async (req, res, next) => {
 
   const slip = {
     slipPicture: pictureName,
-    slipDateTime: new Date(req.body.transferDate * 1000),
+    slipDateTime: new Date(req.body.transferDate * 1),
     slipAmount: req.body.value,
+  };
+
+  const billingBankAccount = {
+    bankNO: req.body.bankAccountNO,
+    bankName: req.body.bankName,
+    auctioneerName: req.body.bankAccountName,
   };
 
   billingInfo.slip = slip;

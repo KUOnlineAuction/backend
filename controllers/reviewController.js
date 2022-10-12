@@ -13,6 +13,8 @@ exports.createReview = catchAsync(async (req, res, next) => {
   if (!auctionID) return next(new AppError("Auction not found"));
 
   // console.log(auctionID.currentWinnerID);
+  const checkAuctionID = Auction.findById(req.params.auction_id);
+  if (!checkAuctionID) return next(new AppError("This Auction is never occur"));
 
   const review = await Review.create({
     reviewerID: auctionID.currentWinnerID,
@@ -22,10 +24,11 @@ exports.createReview = catchAsync(async (req, res, next) => {
     productName: auctionID.productDetail.productName,
   });
 
-  // 0) Auction never occur
-  const checkAuctionID = Auction.findById(req.params.auction_id);
-  if (!checkAuctionID) return next(new AppError("This Auction is never occur"));
+  const user = await User.findById(auctionID.auctioneerID);
 
+  // 0) Auction never occur
+
+  user.reviewList.push(review._ID);
   // 1) check winner bidder and reviever is the same
   // if (!(req.User._id === auctionID.currentWinnerID)) return next(new AppError('Biider and Reviewer are not the same one'));
 

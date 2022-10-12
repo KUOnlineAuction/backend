@@ -30,6 +30,7 @@ const userSchema = new mongoose.Schema({
   displayName: {
     type: String,
     required: [true, "User must have a display name"],
+    maxlength: [30, "Maximum display name is 30"],
   },
   phoneNumber: {
     type: String,
