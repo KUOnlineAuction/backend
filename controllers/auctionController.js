@@ -847,12 +847,38 @@ exports.refresh = catchAsync(async (req, res, next) => {
     return next(new AppError("Auction not found"), 400);
   }
 
+  let isAlreadyBid5Minute = false;
+  let bidHistoryBefore5 = await BidHistory.find({
+    auctionID: auctionId,
+  }).sort({ biddingDate: -1 });
+
+  bidHistoryBefore5 = bidHistoryBefore5.filter(
+    (bidHistory) => bidHistory.biddingDate < auction.endDate - 5 * 60 * 1000
+  );
+
+  let currentPrice = !auction.currentPrice
+    ? auction.startingPrice
+    : auction.currentPrice;
+
+  // 5 minute System currentPrice condition
+  if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
+    if (
+      bidHistory[0] &&
+      auction.endDate - bidHistory[0].biddingDate <= 5 * 60 * 1000
+    ) {
+      isAlreadyBid5Minute = true;
+      currentPrice = bidHistory[0] ? bidHistory[0].biddingPrice : 0;
+    } else {
+      currentPrice = bidHistoryBefore5[0]
+        ? bidHistoryBefore5[0].biddingPrice
+        : auction.startingPrice;
+    }
+  }
+
   res.status(200).json({
     status: "success",
     data: {
-      currentPrice: !auction.currentPrice
-        ? auction.startingPrice
-        : auction.currentPrice,
+      currentPrice,
       dateNow: String(Date.now()),
     },
   });
