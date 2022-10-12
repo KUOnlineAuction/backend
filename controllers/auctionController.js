@@ -832,30 +832,6 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
     status: "success",
     data: bidHistory,
   });
-
-  // bidHistory.forEach(async (value, index, arr) => {
-  //   const user = await User.findById(value.bidderID);
-  //   formatBidHistory.push({
-  //     bidderName: censoredName(user.displayName),
-  //     biddingDate: String(new Date(value.biddingDate).getTime()),
-  //     biddingPrice: value.biddingPrice,
-  //   });
-
-  //   // Please come and fixed this in the future
-  //   if (index === bidHistory.length - 1 || bidHistory.length === 0) {
-  //     res.status(200).json({
-  //       status: "success",
-  //       bidHistory: formatBidHistory,
-  //     });
-  //   }
-  // });
-  // // If there is no bid History
-  // if (bidHistory.length === 0) {
-  //   res.status(200).json({
-  //     status: "success",
-  //     bidHistory: formatBidHistory,
-  //   });
-  //   }
 });
 
 // Refresh (Finished)
@@ -897,7 +873,7 @@ exports.postBid = catchAsync(async (req, res, next) => {
 
   // You cannot bid your own auction
 
-  if (auction.auctioneerID === user._id)
+  if (auction.auctioneerID == user_id)
     return next(new AppError("You cannot bid your own auction", 400));
   if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
     // If auction already in 5 minute system user can only bid once
