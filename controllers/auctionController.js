@@ -357,7 +357,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
 
   //1) Search by name or category
   let auction;
-  if (name) {
+  if (name && !category) {
     //Search by Name
     auction = await Auction.aggregate([
       { $unwind: "$productDetail" },
@@ -386,13 +386,14 @@ exports.getSearch = catchAsync(async (req, res, next) => {
       },
     ]);
   } else if (name && category) {
+    console.log(name);
+    console.log(category);
     //Search By Category and Name
     auction = await Auction.aggregate([
-      { $unwind: "$productDetail" },
       {
         $match: {
           "productDetail.category": category,
-          "productDetail.productName": name,
+          "productDetail.productName": { $regex: `${name}`, $options: "i" },
           auctionStatus: "bidding",
         },
       },
