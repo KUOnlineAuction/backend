@@ -398,13 +398,6 @@ exports.getSearch = catchAsync(async (req, res, next) => {
       },
       {
         $project: {
-          timeRemaining: {
-            $subtract: ["$endDate", Date.now()],
-          },
-        },
-      },
-      {
-        $project: {
           auctionID: "$_id",
           productName: "$productDetail.productName",
           category: "$productDetail.category",
@@ -429,13 +422,6 @@ exports.getSearch = catchAsync(async (req, res, next) => {
         $match: {
           "productDetail.category": category,
           auctionStatus: "bidding",
-        },
-      },
-      {
-        $project: {
-          timeRemaining: {
-            $subtract: ["$endDate", Date.now()],
-          },
         },
       },
       {
@@ -625,8 +611,8 @@ exports.postAuction = catchAsync(async (req, res, next) => {
   if (new Date(req.body.endDate * 1) - 1 * 60 * 60 * 1000 < Date.now()) {
     return next(new AppError("Minimum auction range is 1 hour", 400));
   }
-  if (new Date(req.body.endDate * 1) >= Date.now() + 30 * 24 * 60 * 60 * 1000)
-    return next(new AppError("Maximum auction range is 30 days", 400));
+  if (new Date(req.body.endDate * 1) >= Date.now() + 365 * 24 * 60 * 60 * 1000)
+    return next(new AppError("Maximum auction range is 1 years", 400));
 
   // Create Auction
 
