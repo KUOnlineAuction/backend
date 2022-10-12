@@ -394,6 +394,13 @@ exports.confirmTransac = catchAsync(async (req, res, next) => {
         )
       );
     }
+    let auctioneer = await User.findById(auction.auctioneerID);
+    if (!auctioneer) {
+      return next(new AppError("Couldn't find the user.", 500));
+    }
+    auctioneer.successAuctioned = auctioneer.successAuctioned + 1;
+    auctioneer.totalAuctioned = auctioneer.totalAuctioned + 1;
+    await auctioneer.save({ validateBeforeSave: false });
     billingInfo.billingInfoStatus = "completed";
     await billingInfo.save();
     auction.auctionStatus = "finished";
