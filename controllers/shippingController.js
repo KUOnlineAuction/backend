@@ -1,6 +1,7 @@
 const { BillingInfo } = require("./../models/billingInfoModel");
 const Auction = require("./../models/auctionModel");
 const User = require("./../models/userModel");
+const Report = require("./../models/reportModel");
 
 const catchAsync = require("./../utils/catchAsync");
 const AppError = require("./../utils/appError");
@@ -87,6 +88,17 @@ exports.confirmDelivery = catchAsync(async (req, res, next) => {
     ? "waitingAdminPayment"
     : "completed";
 
+  //Create reprot if deny
+  if (!billingInfo.billingInfoStatus) {
+    const auction = await Auction.findById(req.params.auction_id);
+    const user = await User.findById(auction.auctioneerID);
+    const report = await Report.create({
+      reportedTime: Date.now(),
+      reporterID: auction.currentWinnerID,
+      reportedID: auction.auctioneerID,
+      description: `User ${billingInfo.receiverName}(${auction.currentWinnerID}) did not recieve or recieve correctly from ${user.displayName}(${auction.auctioneerID})`,
+    });
+  }
   billingInfo.save();
   res.status(201).json({
     status: "success",
