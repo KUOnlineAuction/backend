@@ -18,10 +18,6 @@ exports.getPayment = catchAsync(async (req, res, next) => {
   const billingInfo = await BillingInfo.findOne({ auctionID: auction_id });
   const auction = await Auction.findById(auction_id);
   //Check if it is your auction
-  console.log(String(req.user._id) == String(auction.auctioneerID));
-  console.log(auction.auctioneerID);
-  console.log(req.user._id);
-  console.log();
   if (
     !(
       String(auction.currentWinnerID) == String(req.user._id) &&
