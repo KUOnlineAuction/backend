@@ -308,7 +308,6 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
       {
         $project: {
           auctionID: "$_id",
-          coverPicture: { $arrayElemAt: ["$productDetail.productPicture", 0] },
           productName: "$productDetail.productName",
           currentPrice: 1,
           endDate: 1,
