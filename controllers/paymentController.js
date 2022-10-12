@@ -18,14 +18,18 @@ exports.getPayment = catchAsync(async (req, res, next) => {
   const billingInfo = await BillingInfo.findOne({ auctionID: auction_id });
   const auction = await Auction.findById(auction_id);
   //Check if it is your auction
+  console.log(String(req.user._id) == String(auction.auctioneerID));
+  console.log(auction.auctioneerID);
+  console.log(req.user._id);
+  console.log();
   if (
     !(
-      auction.currentWinnerID == req.user.id &&
-      auction.auctionStatus == "waitingForPayment"
-    ) ||
+      String(auction.currentWinnerID) == String(req.user._id) &&
+      billingInfo.billingInfoStatus == "waitingForPayment"
+    ) &&
     !(
-      auction.auctioneerID == req.user.id &&
-      auction.auctionStatus == "waitingForShipping"
+      String(auction.auctioneerID) == String(req.user._id) &&
+      billingInfo.billingInfoStatus == "waitingForShipping"
     )
   ) {
     return next(new AppError("Invalid auctionID", 404));
