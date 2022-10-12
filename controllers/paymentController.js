@@ -20,12 +20,12 @@ exports.getPayment = catchAsync(async (req, res, next) => {
   //Check if it is your auction
   if (
     !(
-      auction.currentWinnerID == req.user.id &&
-      auction.auctionStatus == "waitingForPayment"
-    ) ||
+      String(auction.currentWinnerID) == String(req.user._id) &&
+      billingInfo.billingInfoStatus == "waitingForPayment"
+    ) &&
     !(
-      auction.auctioneerID == req.user.id &&
-      auction.auctionStatus == "waitingForShipping"
+      String(auction.auctioneerID) == String(req.user._id) &&
+      billingInfo.billingInfoStatus == "waitingForShipping"
     )
   ) {
     return next(new AppError("Invalid auctionID", 404));
