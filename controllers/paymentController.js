@@ -19,10 +19,17 @@ exports.getPayment = catchAsync(async (req, res, next) => {
   const auction = await Auction.findById(auction_id);
   //Check if it is your auction
   if (
-    auction.currentWinnerID != req.user.id ||
-    auction.auctioneerID != req.user.id
-  )
-    return next(new AppError("This is not your own auction", 400));
+    !(
+      auction.currentWinnerID == req.user.id &&
+      auction.auctionStatus == "waitingForPayment"
+    ) ||
+    !(
+      auction.auctioneerID == req.user.id &&
+      auction.auctionStatus == "waitingForShipping"
+    )
+  ) {
+    return next(new AppError("Invalid auctionID", 404));
+  }
   if (auction.auctionStatus === "waitingForPayment")
     return next(new AppError("Auction is already paid or not ended", 404));
   if (!auction) return next(new AppError("Auction not found"), 404);
