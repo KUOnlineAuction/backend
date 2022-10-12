@@ -20,7 +20,7 @@ const defaultMinimumBid = (incomingBid) => {
   const digitCount = Math.ceil(Math.log10(incomingBid));
   return incomingBid >= 5000
     ? Math.pow(10, digitCount - 3) *
-    Math.ceil(incomingBid / Math.pow(10, digitCount - 1))
+        Math.ceil(incomingBid / Math.pow(10, digitCount - 1))
     : 50;
 };
 
@@ -308,7 +308,6 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
       {
         $project: {
           auctionID: "$_id",
-          coverPicture: { $arrayElemAt: ["$productDetail.productPicture", 0] },
           productName: "$productDetail.productName",
           currentPrice: 1,
           endDate: 1,
@@ -581,7 +580,7 @@ exports.postFollow = catchAsync(async (req, res, next) => {
         index,
         arr
       ) {
-        return value === req.params.auction_id;
+        return value == req.params.auction_id;
       });
     }
   } else {
@@ -606,7 +605,9 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 
   // expected price must higher than starting price
   if (req.body.startingPrice >= req.body.expectedPrice)
-    return next(new AppError("Expected Price must higher than starting price", 401));
+    return next(
+      new AppError("Expected Price must higher than starting price", 401)
+    );
 
   // Data Validation
   // endDate mustn't be a past
