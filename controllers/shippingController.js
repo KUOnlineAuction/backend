@@ -26,6 +26,7 @@ exports.createDelivery = catchAsync(async (req, res, next) => {
 
   billingInfo.billingBankAccount = billingBankAccount;
   billingInfo.deliverInfo = deliverInfo;
+  billingInfo.billingInfoStatus = "waitingForConfirm";
 
   savePicture(req.body.packagePicture, "packagePicture", pictureName);
 
