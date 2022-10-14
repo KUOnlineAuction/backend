@@ -7,6 +7,7 @@ const router = express.Router();
 
 router.route('/')
     .delete(scriptController.deleteAllUser)
+	.get(scriptController.getUser)
 
 
 module.exports = router;
