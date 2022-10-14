@@ -20,7 +20,7 @@ const defaultMinimumBid = (incomingBid) => {
   const digitCount = Math.ceil(Math.log10(incomingBid));
   return incomingBid >= 5000
     ? Math.pow(10, digitCount - 3) *
-    Math.ceil(incomingBid / Math.pow(10, digitCount - 1))
+        Math.ceil(incomingBid / Math.pow(10, digitCount - 1))
     : 50;
 };
 
@@ -308,8 +308,8 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
       {
         $project: {
           auctionID: "$_id",
-          coverPicture: { $arrayElemAt: ["$productDetail.productPicture", 0] },
           productName: "$productDetail.productName",
+          coverPicture: "$productDetail.productPicture",
           currentPrice: 1,
           endDate: 1,
           isWinning: {
@@ -357,7 +357,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
 
   //1) Search by name or category
   let auction;
-  if (name) {
+  if (name && !category) {
     //Search by Name
     auction = await Auction.aggregate([
       { $unwind: "$productDetail" },
@@ -386,21 +386,15 @@ exports.getSearch = catchAsync(async (req, res, next) => {
       },
     ]);
   } else if (name && category) {
+    console.log(name);
+    console.log(category);
     //Search By Category and Name
     auction = await Auction.aggregate([
-      { $unwind: "$productDetail" },
       {
         $match: {
           "productDetail.category": category,
-          "productDetail.productName": name,
+          "productDetail.productName": { $regex: `${name}`, $options: "i" },
           auctionStatus: "bidding",
-        },
-      },
-      {
-        $project: {
-          timeRemaining: {
-            $subtract: ["$endDate", Date.now()],
-          },
         },
       },
       {
@@ -429,13 +423,6 @@ exports.getSearch = catchAsync(async (req, res, next) => {
         $match: {
           "productDetail.category": category,
           auctionStatus: "bidding",
-        },
-      },
-      {
-        $project: {
-          timeRemaining: {
-            $subtract: ["$endDate", Date.now()],
-          },
         },
       },
       {
@@ -594,7 +581,7 @@ exports.postFollow = catchAsync(async (req, res, next) => {
         index,
         arr
       ) {
-        return value === req.params.auction_id;
+        return value == req.params.auction_id;
       });
     }
   } else {
@@ -619,7 +606,9 @@ exports.postAuction = catchAsync(async (req, res, next) => {
 
   // expected price must higher than starting price
   if (req.body.startingPrice >= req.body.expectedPrice)
-    return next(new AppError("Expected Price must higher than starting price", 401));
+    return next(
+      new AppError("Expected Price must higher than starting price", 401)
+    );
 
   // Data Validation
   // endDate mustn't be a past
@@ -629,8 +618,8 @@ exports.postAuction = catchAsync(async (req, res, next) => {
   if (new Date(req.body.endDate * 1) - 1 * 60 * 60 * 1000 < Date.now()) {
     return next(new AppError("Minimum auction range is 1 hour", 400));
   }
-  if (new Date(req.body.endDate * 1) >= Date.now() + 30 * 24 * 60 * 60 * 1000)
-    return next(new AppError("Maximum auction range is 30 days", 400));
+  if (new Date(req.body.endDate * 1) >= Date.now() + 365 * 24 * 60 * 60 * 1000)
+    return next(new AppError("Maximum auction range is 1 years", 400));
 
   // Create Auction
 
@@ -716,11 +705,11 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
     user.rating
   );
   let isAlreadyBid5Minute = false;
-  const bidHistoryBefore5 = await BidHistory.find({
+  let bidHistoryBefore5 = await BidHistory.find({
     auctionID: auctionId,
   }).sort({ biddingDate: -1 });
 
-  bidHistoryBefore5.filter(
+  bidHistoryBefore5 = bidHistoryBefore5.filter(
     (bidHistory) => bidHistory.biddingDate < auction.endDate - 5 * 60 * 1000
   );
 
@@ -844,30 +833,6 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
     status: "success",
     data: bidHistory,
   });
-
-  // bidHistory.forEach(async (value, index, arr) => {
-  //   const user = await User.findById(value.bidderID);
-  //   formatBidHistory.push({
-  //     bidderName: censoredName(user.displayName),
-  //     biddingDate: String(new Date(value.biddingDate).getTime()),
-  //     biddingPrice: value.biddingPrice,
-  //   });
-
-  //   // Please come and fixed this in the future
-  //   if (index === bidHistory.length - 1 || bidHistory.length === 0) {
-  //     res.status(200).json({
-  //       status: "success",
-  //       bidHistory: formatBidHistory,
-  //     });
-  //   }
-  // });
-  // // If there is no bid History
-  // if (bidHistory.length === 0) {
-  //   res.status(200).json({
-  //     status: "success",
-  //     bidHistory: formatBidHistory,
-  //   });
-  //   }
 });
 
 // Refresh (Finished)
@@ -882,12 +847,38 @@ exports.refresh = catchAsync(async (req, res, next) => {
     return next(new AppError("Auction not found"), 400);
   }
 
+  let isAlreadyBid5Minute = false;
+  let bidHistoryBefore5 = await BidHistory.find({
+    auctionID: auctionId,
+  }).sort({ biddingDate: -1 });
+
+  bidHistoryBefore5 = bidHistoryBefore5.filter(
+    (bidHistory) => bidHistory.biddingDate < auction.endDate - 5 * 60 * 1000
+  );
+
+  let currentPrice = !auction.currentPrice
+    ? auction.startingPrice
+    : auction.currentPrice;
+
+  // 5 minute System currentPrice condition
+  if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
+    if (
+      bidHistory[0] &&
+      auction.endDate - bidHistory[0].biddingDate <= 5 * 60 * 1000
+    ) {
+      isAlreadyBid5Minute = true;
+      currentPrice = bidHistory[0] ? bidHistory[0].biddingPrice : 0;
+    } else {
+      currentPrice = bidHistoryBefore5[0]
+        ? bidHistoryBefore5[0].biddingPrice
+        : auction.startingPrice;
+    }
+  }
+
   res.status(200).json({
     status: "success",
     data: {
-      currentPrice: !auction.currentPrice
-        ? auction.startingPrice
-        : auction.currentPrice,
+      currentPrice,
       dateNow: String(Date.now()),
     },
   });
@@ -909,7 +900,7 @@ exports.postBid = catchAsync(async (req, res, next) => {
 
   // You cannot bid your own auction
 
-  if (auction.auctioneerID === user._id)
+  if (auction.auctioneerID == user_id)
     return next(new AppError("You cannot bid your own auction", 400));
   if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
     // If auction already in 5 minute system user can only bid once

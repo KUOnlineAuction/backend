@@ -404,7 +404,7 @@ exports.myFollowing = catchAsync(async (req, res, next) => {
   ])
   // look up the picture and fix date format
   for (el of auctions){
-    const getPic = await getPicture("productPicture", el.profilePicture)
+    const getPic = await getPicture("productPicture", el.productPicture)
     if(!getPic){
       return next(new AppError(500, "Error getting the picture."))
     }
