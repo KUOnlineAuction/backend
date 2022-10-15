@@ -159,9 +159,9 @@ exports.getTransacDetail = catchAsync(async (req, res, next) => {
       },
       {
         $set: {
-          telephoneNO: { $arrayElemAt: ["$winner.phoneNumber", 0] },
           transferDataTime: "$slip.slipDateTime",
           transactionSlip: "$slip.slipPicture",
+          telephoneNO: "$bidderPhoneNumber"
         },
       },
       {
@@ -339,6 +339,8 @@ exports.getTransacList = catchAsync(async (req, res, next) => {
           auctioneerEmail: 1,
           winningPrice: 1,
           _id: 0,
+          bidderPhoneNumber: 1,
+          address: 1
         },
       },
     ]);
@@ -406,6 +408,13 @@ exports.confirmTransac = catchAsync(async (req, res, next) => {
         )
       );
     }
+    let auctioneer = await User.findById(auction.auctioneerID);
+    if (!auctioneer) {
+      return next(new AppError("Couldn't find the user.", 500));
+    }
+    auctioneer.successAuctioned = auctioneer.successAuctioned + 1;
+    auctioneer.totalAuctioned = auctioneer.totalAuctioned + 1;
+    await auctioneer.save({ validateBeforeSave: false });
     billingInfo.billingInfoStatus = "completed";
     await billingInfo.save();
     auction.auctionStatus = "finished";
