@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const AppError = require("./../utils/appError");
 const Email = require("./../utils/email");
 const crypto = require("crypto");
+const { getPicture } = require("./../utils/getPicture")
 
 const signToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -29,10 +30,11 @@ const createAndSendToken = (user, statusCode, res) => {
 
 exports.signup = catchAsync(async (req, res, next) => {
     // 1) Clean the data to upload to the database
+
     const user = {
         displayName: req.body.displayName,
         email: req.body.email,
-        password: req.body.password
+        password: req.body.password , 
     }
 
     const test = await User.findOne({email: user.email})
@@ -96,9 +98,10 @@ exports.signupnoverify= catchAsync(async (req, res, next) => {
     if(process.env.NODE_ENV !== 'development'){
         return next(new AppError('You are not authorized to access this.', 401))
     }
+
     // 1) Make the user status = 'notConfirm' first
     req.body.userStatus = 'active'
-
+	//req.body.badge = ;
     // 2) Create new user in database
     await User.create(req.body)
 
@@ -135,7 +138,18 @@ exports.login = catchAsync(async(req, res, next) => {
     await user.save({validateBeforeSave: false})
 
     // 3) if everything is ok, send the web token to the client
-    createAndSendToken(user, 200, res)
+    const token = signToken(user._id)
+
+    user.password = undefined
+    user.profilePicture = await getPicture("profilePicture", user.profilePicture, 100, 100)
+
+    res.status(200).json({
+        status: 'success',
+        token,
+        data: {
+            user
+        }
+    })
 })
 
 exports.signout = catchAsync(async(req, res, next) => {
