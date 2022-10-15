@@ -121,7 +121,7 @@ module.exports.gernerateBadge = catachAsync(async (req, res, next) => {
 	for(let i = 0 ; i < user.length ; i++){
 		const checkFraud  = auctionController.fraudCalculator( user[i].totalAuctioned , user[i].successAuctioned , user[i].rating); 
 		if (checkFruad){
-			let assignBadge = user[i]._id
+			let assignBadge = await User.findById({id : `${user[i]._id}`})
 			assignBadge.badge.push(fraud)
 		} 
 		assignBadge.save();
