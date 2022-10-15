@@ -7,6 +7,8 @@ const Review = require("./../models/reviewModel");
 const AppError = require("./../utils/appError");
 const catchAsync = require("./../utils/catchAsync");
 
+const badge = require("./../utils/badge");
+
 exports.createReview = catchAsync(async (req, res, next) => {
   const auctionID = await Auction.findById(req.params.auction_id);
 
@@ -33,6 +35,7 @@ exports.createReview = catchAsync(async (req, res, next) => {
   // if (!(req.User._id === auctionID.currentWinnerID)) return next(new AppError('Biider and Reviewer are not the same one'));
 
   // 2) review auction has only one
+  badge();
 
   res.status(201).json({
     status: "success",
