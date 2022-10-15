@@ -2,48 +2,43 @@ const User = require("./../models/userModel");
 const Auction = require("./models/auctoinModel")
 const Badge = require("./../models/badgeModel");
 
-/*
- * psudo
- * 1) find user
- * 2) check
- * 3) assign badge
- */
-
-/*
- * check every 5 auction
- */
-
-/*
- * how to assign to user
- */
-
-/*
- * top 10 , top 100 -> sort /
- *
- * fruad -> follow the formular (total auction successful auctoin)
- *
- * rising star -> 4 star / 
- *
- * top seller >= 100 /
- * top seller boil  -> total auction >= 1000 /
- * top seller century 21 ->  total auction >= 10000 / 
- *
- * Newbie -> every role -> sign up
- * Admin -> hand
- * Official ->  future
- *
- */
+const auctionController = require("./../controllers/auctionController");
 
 module.exports.gernerateBadge = catachAsync(async (req, res, next) => {
+
+	const successAuctioned = await User.find().select('successAuctioned');
 	const totalAuctioned = await User.find().select('totalAuctioned');
-	const successAuctioned = await User.find().select('successAuctioned')
-	// console.log(typeof (totalAuctioned));
+	const topRating = await User.find().select('rating');
 
-	// sort revere 
-	totalAuctioned.sort((a, b) => {
-		return b.totalAuctioned - a.totalAuctioned
-	})
+	const user = await User.find().select('_id').select('successAuctioned').select('totalAuctioned').select('rating').select("badge").select('userStatus');
 
+	const top_10  		 =    { _id: '634954a6a102ac2aace71589'}
+	const top_100		 =    { _id: '634954e8a102ac2aace7158a'}
+	const top_seller_100 =    { _id: '63495554a102ac2aace7158d'}
+	const top_seller_1k  =    { _id: '6349556ea102ac2aace7158e'}
+	const top_seller_10k =    { _id: '63495661a102ac2aace7158f'}
+	const stars  		 =    { _id: '63495544a102ac2aace7158c'}
+	const fraud  		 =    { _id: '6349552aa102ac2aace7158b'}
+	const newbie		 =    { _id: '6349568da102ac2aace71590'}
+	const admin 		 =    { _id: '6349569da102ac2aace71591'}
+	const official       =    { _id: '634956b7a102ac2aace71592'}
+
+	// clear badge
+	for (let i = 0 ; i < user.length ; i++){
+		user[i].badge.length = 0 ;
+	}
+	
+	// admin 
+	for (let i = 0 ; i < user.length ; i++){
+		
+		if (user[i].userStatus === "admin") {
+			user[i].badge.push(admin)
+			user[i].save();
+		}
+	}
+	
+
+	// top_10 top_100
 	successAuctioned.sort((a,b) => {
 		return b.totalAuctioned - a.totalAuctioned
 	})
@@ -51,49 +46,95 @@ module.exports.gernerateBadge = catachAsync(async (req, res, next) => {
 	let topSuccess = successAuctioned;
 	let topSuccess100 = [];
 
-	// collect top total auciton _id 
+	
+	// collect  top successAuctioned by user_id 
 	for (let i = 0 ; i < topSuccess.length ; i++){
 		if(i < 100){
 			topSuccess100.push(topSuccess[i]._id)
 		}
 	}
-	
-	// asign badge 
-	for (let i=0 ; i< topSuccess100.length ; i++){
-		const badgeTop = await User.find
+
+	// assign badge 
+	for (let i = 0 ; i < 100 ; i++ ){
+		let assignBadge = await User.findById({_id : `${topSuccess100[i]}`}) 
+		if (i < 10){
+			assignBadge.badge.push(top_10);
+		}
+		else {
+			assignBadge.badge.push(top_100);
+		}
+		assignBadge.save();
 	}
 
-	// top 10 , top 100 , top seller 
-	//for (let i = 0; i <= top.length; i++) {
+	// top_seller_100 top_seller_1k top_seller_10k 
+	totalAuctioned.sort((a, b) => {
+		return b.totalAuctioned - a.totalAuctioned
+	})
+	
+	let topSeller =  totalAuctioned
+	let topSeller100 = [];
 
-		//if (i > 100) {
-			//break;
-		//}
-
-		//if (top[i] >= 10000) {
-			//topSeller21Century.push(top[i]);
-		//}
-
-		//else if (top[i] >= 1000) {
-			//topSeller.push(top[i]);
-		//}
-
-		//if (i < 10) {
-			//top10.push(top[i])
-		//}
-		//top100.push(top[i]);
-	//};
-
-	// rising star
-
-	const rating = await User.find().select(rating);
-	let risingStar = []
-	rating.forEach((e) => {
-		if (e.rating >= 4) {
-			risingStar.push(e)
+	// collect top totalAuctioned  by user_id
+	for(let i = 0 ; i < topSeller.length ; i++){
+		topSeller100.push(topSeller[i]._id)
+	}
+	
+	// assignBadge
+	for(let i = 0 ; i<topSeller.length ; i++){
+		let assignBadge = await User.findById({_id : `${topSeller100[i]}`}) 
+		if (assignBadge.totalAuctioned >= 10000) {
+			assignBadge.badge.push(top_seller_10k)
 		}
-	});
+		else if (assignBadge.totalAuctioned >= 1000){
+			assignBadge.badge.push(top_seller_1k)
+		}
+		else {
+			assignBadge.badge.push(top_seller_100)
+		}
+		assignBadge.save();
+	}
 
+	
+	// star
+	topRating.sort((a,b) => {
+		return b.starRating - a.starRating 
+	})
+	let topStar = topRating ;
+	let topStar4 = [];
+
+	// collection top Star by User _id 
+	for(let i = 0 ; i < topStar.length ; i++){
+		topStar4.push(topStar[i]._id)
+	}
+
+	// assignBadge
+	for(let i = 0 ; i < topStar4.length ; i++){
+		let assignBadge = await User.findById({_id : `${topStar4[i]}`}) 
+		if (assignBadge.rating >= 4){
+			assignBadge.badge.push(star)
+		}
+		assignBadge.save();
+	}
+
+	// fraud    totalAuctioned , successAuctioned , rating 
+	// assignBadge
+	for(let i = 0 ; i < user.length ; i++){
+		const checkFraud  = auctionController.fraudCalculator( user[i].totalAuctioned , user[i].successAuctioned , user[i].rating); 
+		if (checkFruad){
+			let assignBadge = user[i]._id
+			assignBadge.badge.push(fraud)
+		} 
+		assignBadge.save();
+
+	} 
+	
+	// newbie 
+	for (let i = 0 ; i < user.length ; i++){
+		if (user[i].badge.length === 0 ){
+			user[i].badge.push(newbie)
+		}
+		user[i].save();
+	}
 });
 
 

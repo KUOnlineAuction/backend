@@ -29,10 +29,11 @@ const createAndSendToken = (user, statusCode, res) => {
 
 exports.signup = catchAsync(async (req, res, next) => {
     // 1) Clean the data to upload to the database
+
     const user = {
         displayName: req.body.displayName,
         email: req.body.email,
-        password: req.body.password
+        password: req.body.password , 
     }
 
     const test = await User.findOne({email: user.email})
@@ -96,9 +97,10 @@ exports.signupnoverify= catchAsync(async (req, res, next) => {
     if(process.env.NODE_ENV !== 'development'){
         return next(new AppError('You are not authorized to access this.', 401))
     }
+
     // 1) Make the user status = 'notConfirm' first
     req.body.userStatus = 'active'
-
+	//req.body.badge = ;
     // 2) Create new user in database
     await User.create(req.body)
 
