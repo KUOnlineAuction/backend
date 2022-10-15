@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const AppError = require("./../utils/appError");
 const Email = require("./../utils/email");
 const crypto = require("crypto");
+const { getPicture } = require("./../utils/getPicture")
 
 const signToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -137,7 +138,18 @@ exports.login = catchAsync(async(req, res, next) => {
     await user.save({validateBeforeSave: false})
 
     // 3) if everything is ok, send the web token to the client
-    createAndSendToken(user, 200, res)
+    const token = signToken(user._id)
+
+    user.password = undefined
+    user.profilePicture = await getPicture("profilePicture", user.profilePicture, 100, 100)
+
+    res.status(200).json({
+        status: 'success',
+        token,
+        data: {
+            user
+        }
+    })
 })
 
 exports.signout = catchAsync(async(req, res, next) => {
