@@ -51,7 +51,7 @@ async function getAuctionThisHour() {
     hourlyCheckList.push.apply(hourlyCheckList, auctions)
     hourlyCheckListFive.length = 0
     hourlyCheckListFive.push.apply(hourlyCheckListFive, auctions)
-    console.log(`[H: Hourly Checklist] Found ${hourlyCheckList.length} auctions ending this hour.`)
+    console.log(`[M: DEMO minutely Checklist] Found ${hourlyCheckList.length} auctions ending this hour.`)
 }
 getAuctionThisHour()
 // optimized Routine checking for Auctions ending:
