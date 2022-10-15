@@ -43,7 +43,7 @@ exports.changeEndDate = catchAsync(async (req, res, next) => {
     return next(new AppError("Required query params"));
   }
 
-  res.status(200).json({
+  res.status(204).json({
     status: "success",
   });
 });
@@ -63,7 +63,7 @@ exports.changeBillingInfo = catchAsync(async (req, res, next) => {
     auction.billingHistoryID = billingInfo._id;
   }
   auction.save();
-  res.status(200).json({
+  res.status(204).json({
     status: "success",
   });
 });
