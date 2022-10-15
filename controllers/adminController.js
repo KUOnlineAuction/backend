@@ -159,15 +159,15 @@ exports.getTransacDetail = catchAsync(async (req, res, next) => {
       },
       {
         $set: {
-          telephoneNO: { $arrayElemAt: ["$winner.phoneNumber", 0] },
           transferDataTime: "$slip.slipDateTime",
           transactionSlip: "$slip.slipPicture",
+          telephoneNO: "$bidderPhoneNumber"
         },
       },
       {
         $project: {
           receiverName: 1,
-          telephoneNO: 1,
+          bidderPhoneNumber: 1,
           address: 1,
           transferDataTime: 1,
           transactionSlip: 1,
@@ -327,6 +327,8 @@ exports.getTransacList = catchAsync(async (req, res, next) => {
           auctioneerEmail: 1,
           winningPrice: 1,
           _id: 0,
+          bidderPhoneNumber: 1,
+          address: 1
         },
       },
     ]);
