@@ -581,9 +581,10 @@ exports.postFollow = catchAsync(async (req, res, next) => {
         index,
         arr
       ) {
-        return value == req.params.auction_id;
+        return value != req.params.auction_id;
       });
     }
+    console.log(String(user.followingList[0]) == req.params.auction_id);
   } else {
     return next(new AppError("Please enter either true or false"), 400);
   }
@@ -863,11 +864,13 @@ exports.refresh = catchAsync(async (req, res, next) => {
   // 5 minute System currentPrice condition
   if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
     if (
-      bidHistory[0] &&
-      auction.endDate - bidHistory[0].biddingDate <= 5 * 60 * 1000
+      bidHistoryBefore5[0] &&
+      auction.endDate - bidHistoryBefore5[0].biddingDate <= 5 * 60 * 1000
     ) {
       isAlreadyBid5Minute = true;
-      currentPrice = bidHistory[0] ? bidHistory[0].biddingPrice : 0;
+      currentPrice = bidHistoryBefore5[0]
+        ? bidHistoryBefore5[0].biddingPrice
+        : 0;
     } else {
       currentPrice = bidHistoryBefore5[0]
         ? bidHistoryBefore5[0].biddingPrice
