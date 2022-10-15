@@ -14,32 +14,6 @@ const jwt = require("jsonwebtoken");
 const AppError = require("./../utils/appError");
 const { getPicture, savePicture } = require("./../utils/getPicture");
 
-// const multerStorage = multer.memoryStorage()
-
-// const multerFilter = (req, file, cb) => {
-//   if (file.mimetype.startsWith('image')) {
-//     cb(null, true);
-//   } else {
-//     cb(new AppError('Not an image! Please upload only images.', 400), false);
-//   }
-// };
-
-// const upload = multer({
-//   storage: multerStorage,
-//   fileFilter: multerFilter
-// });
-
-// exports.uploadUserImage = upload.single('photo')
-
-// exports.resizeUserImage = (req ,res, next) => {
-//     const img = req.body.profilePicture.replace(/.*,/, "");
-//     const imageBuffer = Buffer.from(img, 'base64')
-//     req.body.filename = `${req.user.id}.jpg`
-//     const filePath = path.join(__dirname, '..', 'picture', 'profilePicture', req.body.filename)
-//     sharp(imageBuffer).resize(1000,1000).toFormat('jpeg').jpeg({quality: 50}).toFile(filePath)
-//     next()
-// }
-
 exports.myProfile = catchAsync(async (req, res, next) => {
   // 1) Get current user ID
   // no longer needed
@@ -108,7 +82,7 @@ exports.editProfle = catchAsync(async (req, res, next) => {
     "accountDescription",
     "bankNO",
     "bankName",
-    "bankAccountName"
+    "bankAccountName",
   ];
   for (let el of updatedFields) {
     if (req.body[el]) {
@@ -174,13 +148,13 @@ exports.myorder = catchAsync(async (req, res, next) => {
     .select(
       "auctioneerID productDetail endDate currentPrice auctionStatus billingHistoryID bidHistory"
     )
-    .sort({"endDate":1})
+    .sort({ endDate: 1 })
     .lean();
 
   for (let el of auctions) {
     el.auctionID = el._id;
-    const auctioneerDisplayname = await User.findById(el.auctioneerID)
-    el.auctioneerDisplayname = auctioneerDisplayname.displayName
+    const auctioneerDisplayname = await User.findById(el.auctioneerID);
+    el.auctioneerDisplayname = auctioneerDisplayname.displayName;
     // comment next line if picture hasn't been implemented
     const aucPic = await getPicture(
       "productPicture",
@@ -192,19 +166,18 @@ exports.myorder = catchAsync(async (req, res, next) => {
     el.productPicture = aucPic;
     el.productName = el.productDetail.productName;
     el.lastBid = el.currentPrice;
-    if(el.auctionStatus === "bidding"){
-      el.endDate = (el.endDate*1).toString()
+    if (el.auctionStatus === "bidding") {
+      el.endDate = (el.endDate * 1).toString();
       el.billingStatus = null;
-    }
-    else if(el.billingHistoryID){
+    } else if (el.billingHistoryID) {
       const bill = await BillingInfo.findById(el.billingHistoryID)
         .select("billingInfoStatus")
         .lean();
       // console.log(el._id, el.billingHistoryID, bill)
       el.billingStatus = bill.billingInfoStatus;
-      el.endDate = undefined
-    } else{
-      el.endDate = undefined
+      el.endDate = undefined;
+    } else {
+      el.endDate = undefined;
     }
 
     if (req.query.list === "mybid" && el.auctionStatus === "bidding") {
@@ -311,7 +284,7 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
     el.productName = el.productDetail.productName;
     el.productDetail._id = undefined;
     el.productDetail = undefined;
-    el.endDate = (el.endDate*1).toString()
+    el.endDate = (el.endDate * 1).toString();
   }
 
   user.activeAuctionList = auctions;
@@ -323,13 +296,15 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
 });
 
 exports.myReviews = catchAsync(async (req, res, next) => {
-  let currentUserReviews = await User.findById(req.user.id).select("reviewList")
+  let currentUserReviews = await User.findById(req.user.id).select(
+    "reviewList"
+  );
   // console.log(currentUserReviews)
   let data = await Review.aggregate([
     {
       $match: {
-        _id: {$in : currentUserReviews.reviewList}
-      }
+        _id: { $in: currentUserReviews.reviewList },
+      },
     },
     {
       $lookup: {
@@ -337,10 +312,10 @@ exports.myReviews = catchAsync(async (req, res, next) => {
         localField: "reviewerID",
         foreignField: "_id",
         as: "commenter",
-      }
+      },
     },
     {
-      $set: { commenter: { $arrayElemAt: ["$commenter.displayName", 0] } }
+      $set: { commenter: { $arrayElemAt: ["$commenter.displayName", 0] } },
     },
     {
       $project: {
@@ -348,25 +323,25 @@ exports.myReviews = catchAsync(async (req, res, next) => {
         commenter: 1,
         comment: 1,
         rating: 1,
-        _id: 0
-      }
-    }
-  ])
+        _id: 0,
+      },
+    },
+  ]);
   // console.log(data)
   res.status(200).json({
     status: "success",
-    data
+    data,
   });
-})
+});
 
 exports.myFollowing = catchAsync(async (req, res, next) => {
-  let auctionIDs = await User.findById(req.user.id).select('followingList')
-  auctionIDs = auctionIDs.followingList
+  let auctionIDs = await User.findById(req.user.id).select("followingList");
+  auctionIDs = auctionIDs.followingList;
   let auctions = await Auction.aggregate([
     {
-      $match : {
-        _id: {$in: auctionIDs}
-      }
+      $match: {
+        _id: { $in: auctionIDs },
+      },
     },
     {
       $lookup: {
@@ -374,16 +349,16 @@ exports.myFollowing = catchAsync(async (req, res, next) => {
         localField: "auctioneerID",
         foreignField: "_id",
         as: "auctioneer",
-      }
+      },
     },
     {
       $set: {
-        auctioneerName: { $arrayElemAt: ["$auctioneer.displayName", 0]},
-        productPicture: { $arrayElemAt: ["$productDetail.productPicture", 0]},
+        auctioneerName: { $arrayElemAt: ["$auctioneer.displayName", 0] },
+        productPicture: { $arrayElemAt: ["$productDetail.productPicture", 0] },
         productName: "$productDetail.productName",
         highestBid: "$currentPrice",
-        auctionID: "$_id"
-      }
+        auctionID: "$_id",
+      },
     },
     {
       $project: {
@@ -393,28 +368,28 @@ exports.myFollowing = catchAsync(async (req, res, next) => {
         productName: 1,
         highestBid: 1,
         productPicture: 1,
-        endDate: 1
-      }
+        endDate: 1,
+      },
     },
     {
       $sort: {
-        endDate: 1
-      }
-    }
-  ])
+        endDate: 1,
+      },
+    },
+  ]);
   // look up the picture and fix date format
-  for (el of auctions){
-    const getPic = await getPicture("productPicture", el.productPicture)
-    if(!getPic){
-      return next(new AppError(500, "Error getting the picture."))
+  for (el of auctions) {
+    const getPic = await getPicture("productPicture", el.productPicture);
+    if (!getPic) {
+      return next(new AppError(500, "Error getting the picture."));
     }
-    el.productPicture = getPic
-    el.endDate = (el.endDate*1).toString()
+    el.productPicture = getPic;
+    el.endDate = (el.endDate * 1).toString();
   }
 
   // console.log(auctions)
   res.status(200).json({
     status: "success",
-    data: auctions
+    data: auctions,
   });
-})
+});
