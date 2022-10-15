@@ -167,7 +167,7 @@ exports.getTransacDetail = catchAsync(async (req, res, next) => {
       {
         $project: {
           receiverName: 1,
-          bidderPhoneNumber: 1,
+          telephoneNO: 1,
           address: 1,
           transferDataTime: 1,
           transactionSlip: 1,
