@@ -1,7 +1,17 @@
 const catchAsync = require("./../utils/catchAsync");
 const Auction = require("./../models/auctionModel");
+const { BillingInfo } = require("./../models/billingInfoModel");
 
 const AppError = require("./../utils/appError");
+
+const billingInfoStatusEnum = [
+  "waitingForPayment",
+  "waitingConfirmSlip",
+  "waitingForShipping",
+  "waitingForConfirm",
+  "waitingAdminPayment",
+  "completed",
+];
 
 exports.deleteAllUser = catchAsync(async (req, res, next) => {
   const script = await Auction.deleteMany({});
@@ -33,6 +43,26 @@ exports.changeEndDate = catchAsync(async (req, res, next) => {
     return next(new AppError("Required query params"));
   }
 
+  res.status(204).json({
+    status: "success",
+  });
+});
+
+exports.changeBillingInfo = catchAsync(async (req, res, next) => {
+  const auction = await Auction.findById(req.params.auction_id);
+  if (req.query.state === "waitingForPayment") {
+    if (auction.auctionStatus === "waiting")
+      return next(AppError("Auction already ended"));
+
+    const billingInfo = await BillingInfo.create({
+      auctionID: auction._id,
+      winningPrice: auction.currentPrice,
+    });
+    auction.endDate = Date.now();
+    auction.auctionStatus = "waiting";
+    auction.billingHistoryID = billingInfo._id;
+  }
+  auction.save();
   res.status(204).json({
     status: "success",
   });

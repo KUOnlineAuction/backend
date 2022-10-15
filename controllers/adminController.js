@@ -205,8 +205,8 @@ exports.getTransacDetail = catchAsync(async (req, res, next) => {
       {
         $project: {
           bankName: 1,
-          AccountNumber: 1,
-          AccountName: 1,
+          accountNumber: 1,
+          accountName: 1,
           trackingNumber: 1,
           shippingCompany: 1,
           packagePicture: 1,

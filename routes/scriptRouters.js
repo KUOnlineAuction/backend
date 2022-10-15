@@ -10,6 +10,10 @@ router
   .patch(scriptController.changeEndDate);
 
 router
+  .route("/changeBillingInfo/:auction_id")
+  .patch(scriptController.changeBillingInfo);
+
+router
   .route("/")
   .delete(scriptController.deleteAllUser)
   .get(scriptController.getUser);
