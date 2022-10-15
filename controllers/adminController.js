@@ -195,8 +195,8 @@ exports.getTransacDetail = catchAsync(async (req, res, next) => {
       {
         $set: {
           bankName: "$billingBankAccount.bankName",
-          AccountNumber: "$billingBankAccount.bankNO",
-          AccountName: "$billingBankAccount.auctioneerName",
+          accountNumber: "$billingBankAccount.bankNO",
+          accountName: "$billingBankAccount.auctioneerName",
           trackingNumber: "$deliverInfo.trackingNumber",
           shippingCompany: "$deliverInfo.shippingCompany",
           packagePicture: "$deliverInfo.packagePicture",

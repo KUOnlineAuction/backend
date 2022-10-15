@@ -5,13 +5,11 @@ const router = express.Router();
 
 router.route("/").delete(scriptController.deleteAllUser);
 
-router
-  .route("/changeEndDate/:auction_id")
-  .patch(scriptController.changeEndDate);
+router.route("/changeEndDate/:auction_id").get(scriptController.changeEndDate);
 
 router
   .route("/changeBillingInfo/:auction_id")
-  .patch(scriptController.changeBillingInfo);
+  .get(scriptController.changeBillingInfo);
 
 router
   .route("/")
