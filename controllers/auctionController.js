@@ -905,7 +905,17 @@ exports.postBid = catchAsync(async (req, res, next) => {
 
   if (auction.auctioneerID == user_id)
     return next(new AppError("You cannot bid your own auction", 400));
+
+  // If postBid after bidding endded
+  if (auction.auctionStatus !== "bidding")
+    return next(new AppError("Bid is already ended"), 400);
+
+  // 5 minute system
+  let auctionUpdatedCurrentPrice = req.body.biddingPrice;
+  let auctionUpdatedCurrentWinnerID = user_id;
   if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
+    auctionUpdatedCurrentPrice = auction.currentPrice;
+    auctionUpdatedCurrentWinnerID = auction.currentWinnerID;
     // If auction already in 5 minute system user can only bid once
     const bidHistory = await BidHistory.find({
       bidderID: user._id,
@@ -917,15 +927,18 @@ exports.postBid = catchAsync(async (req, res, next) => {
 
     if (bidHistory.length > 0)
       return next(new AppError("5 minute auction can be only bid once"), 400);
+
+    if (req.body.biddingPrice > auction.currentPrice) {
+      auctionUpdatedCurrentPrice = req.body.biddingPrice;
+      auctionUpdatedCurrentWinnerID = user._id;
+    }
   }
 
-  // If postBid after bidding endded
-
-  if (auction.auctionStatus !== "bidding")
-    return next(new AppError("Bid is already ended"), 500);
-
   const bidStep = auction.bidStep || defaultMinimumBid(auction.currentPrice);
-  if (req.body.biddingPrice < auction.currentPrice + bidStep) {
+  if (
+    req.body.biddingPrice < auction.currentPrice + bidStep &&
+    !(auction.endDate - Date.now() <= 5 * 60 * 1000)
+  ) {
     return next(
       new AppError(
         "The input bid is lower than the current bid + minimum bid step"
@@ -933,7 +946,8 @@ exports.postBid = catchAsync(async (req, res, next) => {
       400
     );
   }
-
+  
+  // Expected Price
   const expectedPriceCheck = (auction) => {
     if (auction.endDate - Date.now() <= 60 * 60 * 1000) return auction.endDate;
     if (
@@ -945,7 +959,7 @@ exports.postBid = catchAsync(async (req, res, next) => {
     return auction.endDate;
   };
 
-  // Expected Price
+  
   const updatedAuction = await Auction.updateOne(
     { _id: req.params.auction_id },
     {
