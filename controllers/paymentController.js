@@ -17,9 +17,24 @@ exports.getPayment = catchAsync(async (req, res, next) => {
   const auction_id = req.params.auction_id;
   const billingInfo = await BillingInfo.findOne({ auctionID: auction_id });
   const auction = await Auction.findById(auction_id);
-  if (!auction) return next(new AppError("Auction not found"), 400);
+  //Check if it is your auction
+  if (
+    !(
+      String(auction.currentWinnerID) == String(req.user._id) &&
+      billingInfo.billingInfoStatus == "waitingForPayment"
+    ) &&
+    !(
+      String(auction.auctioneerID) == String(req.user._id) &&
+      billingInfo.billingInfoStatus == "waitingForShipping"
+    )
+  ) {
+    return next(new AppError("Invalid auctionID", 404));
+  }
+  if (auction.auctionStatus === "waitingForPayment")
+    return next(new AppError("Auction is already paid or not ended", 404));
+  if (!auction) return next(new AppError("Auction not found"), 404);
   const auctioneer = await User.findById(auction.auctioneerID);
-  if (!auctioneer) return next(new AppError("Auctioneer not found"), 400);
+  if (!auctioneer) return next(new AppError("Auctioneer not found"), 404);
   const picture = await getPicture("productPicture", `${auction_id}-0.jpeg`);
   res.status(200).json({
     status: "success",

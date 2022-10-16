@@ -20,7 +20,7 @@ const reviewRouter = require("./routes/reviewRoutes");
 const shippingRouter = require("./routes/shippingRoutes");
 const adminRouter = require("./routes/adminRoutes");
 const billingInfoRouter = require("./routes/billingInfoRoutes");
-const scriptRouter = require("./routes/scriptRouters")
+const scriptRouter = require("./routes/scriptRouters");
 
 const app = express();
 
@@ -89,6 +89,7 @@ app.use("/shipping", shippingRouter);
 app.use("/billingInfo", billingInfoRouter);
 
 app.use("/script", scriptRouter);
+app.use("/picture", express.static(`${__dirname}/picture`));
 
 // Handle other invalid routes
 app.all("*", (req, res, next) => {

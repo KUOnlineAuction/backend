@@ -105,9 +105,9 @@ exports.getReports = catchAsync(async (req, res, next) => {
       },
     },
   ]);
-  
-  for (let el of reportList){
-    el.reportedDate = (el.reportedDate*1).toString()
+
+  for (let el of reportList) {
+    el.reportedDate = (el.reportedDate * 1).toString();
   }
 
   res.status(200).json({
@@ -175,8 +175,14 @@ exports.getTransacDetail = catchAsync(async (req, res, next) => {
       },
     ]);
     detail = detail[0];
-    detail.transferDataTime = (detail.transferDataTime*1).toString()
-    const slipPic = await getPicture("slipPicture", detail.transactionSlip, null, null, true);
+    detail.transferDataTime = (detail.transferDataTime * 1).toString();
+    const slipPic = await getPicture(
+      "slipPicture",
+      detail.transactionSlip,
+      null,
+      null,
+      true
+    );
     if (!slipPic) {
       return next(new AppError("Couldn't find the picture"), 500);
     }
@@ -189,8 +195,8 @@ exports.getTransacDetail = catchAsync(async (req, res, next) => {
       {
         $set: {
           bankName: "$billingBankAccount.bankName",
-          AccountNumber: "$billingBankAccount.bankNO",
-          AccountName: "$billingBankAccount.auctioneerName",
+          accountNumber: "$billingBankAccount.bankNO",
+          accountName: "$billingBankAccount.auctioneerName",
           trackingNumber: "$deliverInfo.trackingNumber",
           shippingCompany: "$deliverInfo.shippingCompany",
           packagePicture: "$deliverInfo.packagePicture",
@@ -199,8 +205,8 @@ exports.getTransacDetail = catchAsync(async (req, res, next) => {
       {
         $project: {
           bankName: 1,
-          AccountNumber: 1,
-          AccountName: 1,
+          accountNumber: 1,
+          accountName: 1,
           trackingNumber: 1,
           shippingCompany: 1,
           packagePicture: 1,
@@ -209,7 +215,13 @@ exports.getTransacDetail = catchAsync(async (req, res, next) => {
       },
     ]);
     detail = detail[0];
-    const packagePic = await getPicture("packagePicture",detail.packagePicture, null, null, true);
+    const packagePic = await getPicture(
+      "packagePicture",
+      detail.packagePicture,
+      null,
+      null,
+      true
+    );
     if (!packagePic) {
       return next(new AppError("Couldn't find the picture"), 500);
     }
