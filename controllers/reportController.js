@@ -24,6 +24,11 @@ exports.postReport = catchAsync(async (req, res, next) => {
     decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   }
 
+  if (!decoded.id)
+    return next(new AppError("You must login to report user"), 401);
+
+  if (decoded.id == req.body.reportID)
+    return next(new AppError("You cannot report yourself", 400));
   if (!req.body.reportID || !req.body.reportDescription) {
     return next(new AppError("Please enter reportID or description"), 400);
   }
