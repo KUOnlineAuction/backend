@@ -86,11 +86,29 @@ const getPictures = (folder, pictures, width = 1000, height = 1000) => {
  * @param {Array} picturesBase64 array of base64
  * @param {Array} savedName array of pictureName
  */
-const savePictures = catchAsync(async (folder, picturesBase64, savedName) => {
-  picturesBase64.forEach((value, index, arr) => {
-    savePicture(value, folder, savedName[index]);
-  });
-});
+const savePictures = catchAsync(
+  async (
+    folder,
+    picturesBase64,
+    savedName,
+    width = 1000,
+    height = 1000,
+    quality = 80,
+    original = false
+  ) => {
+    picturesBase64.forEach((value, index, arr) => {
+      savePicture(
+        value,
+        folder,
+        savedName[index],
+        width,
+        height,
+        quality,
+        original
+      );
+    });
+  }
+);
 
 /**
  * @desc check wheather input id is valid mongodb objectID
@@ -661,7 +679,15 @@ exports.postAuction = catchAsync(async (req, res, next) => {
     newAuction.productDetail.productPicture.push(pictureName);
   });
 
-  savePictures("productPicture", req.body.productPicture, productPictureNames);
+  savePictures(
+    "productPicture",
+    req.body.productPicture,
+    productPictureNames.at,
+    null,
+    null,
+    100,
+    true
+  );
 
   newAuction.save();
 
