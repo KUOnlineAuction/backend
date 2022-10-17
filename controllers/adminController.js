@@ -6,6 +6,7 @@ const Report = require("./../models/reportModel");
 const { BillingInfo } = require("./../models/billingInfoModel");
 const Auction = require("./../models/auctionModel");
 const { getPicture } = require("./../utils/getPicture");
+const Refund = require("./../models/refundModel");
 
 const daysToDeliver = 5;
 
@@ -15,7 +16,7 @@ exports.getBlacklist = catchAsync(async (req, res, next) => {
       $match: { userStatus: "blacklist" },
     },
     {
-      $project: { displayName: 1, userID: "$_id", _id: 0 },
+      $project: { displayName: 1, userID: "$_id", email: 1, _id: 0},
     },
   ]);
   res.status(200).json({
@@ -370,26 +371,43 @@ exports.confirmTransac = catchAsync(async (req, res, next) => {
   }
   let auction;
   if (req.body.confirm === "slip") {
-    auction = await Auction.findById(req.params.auction_id);
-    if (!auction) {
-      return next(new AppError("Invalid auctionID provided", 400));
-    }
-    let billingInfo = await BillingInfo.findById(auction.billingHistoryID);
-    if (!billingInfo) {
-      return next(new AppError("Couldn't find the billingInfo", 500));
-    }
-    if (billingInfo.billingInfoStatus !== "waitingConfirmSlip") {
+    if (!req.body.confirmStatus){
       return next(
-        new AppError(
-          "The billing info status doesn't match the current request",
-          400
-        )
+        new AppError(`Please provide the confirm status of the slip`, 400)
       );
     }
-    billingInfo.billingInfoStatus = "waitingForShipping";
-    billingInfo.deliverDeadline =
-      Date.now() + daysToDeliver * 1000 * 60 * 60 * 24;
-    billingInfo.save();
+    if (req.body.confirmStatus === "confirm"){      
+      auction = await Auction.findById(req.params.auction_id);
+      if (!auction) {
+        return next(new AppError("Invalid auctionID provided", 400));
+      }
+      let billingInfo = await BillingInfo.findById(auction.billingHistoryID);
+      if (!billingInfo) {
+        return next(new AppError("Couldn't find the billingInfo", 500));
+      }
+      if (billingInfo.billingInfoStatus !== "waitingConfirmSlip") {
+        return next(
+          new AppError(
+            "The billing info status doesn't match the current request",
+            400
+          )
+        );
+      }
+      billingInfo.billingInfoStatus = "waitingForShipping";
+      billingInfo.deliverDeadline =
+        Date.now() + daysToDeliver * 1000 * 60 * 60 * 24;
+      await billingInfo.save();
+    }
+    else if(req.body.confirmStatus === "deny"){
+      auction = await Auction.findById(req.params.auction_id);
+      let billingInfo = await BillingInfo.findById(auction.billingHistoryID);
+      billingInfo.billingInfoStatus = "waitingForPayment";
+      billingInfo.slip = null;
+      await billingInfo.save();
+    }
+    else{
+      return next(new AppError("Invalud confirmStatus ('confirm'/'deny' only)",400));
+    }
   }
   if (req.body.confirm === "payment") {
     auction = await Auction.findById(req.params.auction_id);
@@ -424,3 +442,38 @@ exports.confirmTransac = catchAsync(async (req, res, next) => {
     status: "success",
   });
 });
+
+// exports.getRefundList = catchAsync(async (req, res, next) => {
+//   const filter = {
+//     refundStatus: false
+//   }
+//   const refunds = await Refund.find(filter)
+//   res.status(200).json({
+//     status: "success",
+//     data: refunds
+//   });
+// });
+
+// exports.getRefundList = catchAsync(async (req, res, next) => {
+//   const filter = {
+//     refundStatus: false
+//   }
+//   const refunds = await Refund.find(filter)
+//   res.status(200).json({
+//     status: "success",
+//     data: refunds
+//   });
+// });
+
+// exports.refund = catchAsync(async (req, res, next) => {
+//   if(!req.params.refundID){
+//     return next(new AppError("A refund update request must contain a refund ID"), 400);
+//   }
+//   const refund = await Refund.findById(req.params.refundID);
+//   refund.refundStatus = true;
+//   refund.dateRefunded = Date.now();
+//   await refund.save();
+//   res.status(200).json({
+//     status: "success"
+//   })
+// });
