@@ -55,7 +55,7 @@ exports.removeBlacklistedUser = catchAsync(async (req, res, next) => {
       userStatus: "blacklist",
     },
     {
-      userStatus: "activate",
+      userStatus: "active",
     }
   );
   if (!update) {

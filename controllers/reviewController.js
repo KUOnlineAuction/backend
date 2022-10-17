@@ -35,7 +35,7 @@ exports.createReview = catchAsync(async (req, res, next) => {
   // if (!(req.User._id === auctionID.currentWinnerID)) return next(new AppError('Biider and Reviewer are not the same one'));
 
   // 2) review auction has only one
-  badge();
+  badge.gernerateBadge();
 
   res.status(201).json({
     status: "success",
