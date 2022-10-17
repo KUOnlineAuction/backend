@@ -328,17 +328,21 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
   formatedAuction = formatedAuction.slice(0, 15); // Get First 15 Auctions
 
   // Retrive coverPicture
-  formatedAuction = await Promise.all(
-    formatedAuction.map(async (obj) => {
-      const coverPicture = obj.coverPicture
-        ? await getPicture("productPicture", obj.coverPicture, 300, 300)
-        : await getPicture("productPicture", "default.jpeg", 300, 300);
-      return {
-        ...obj,
-        coverPicture: coverPicture,
-      };
-    })
-  );
+  // formatedAuction = await Promise.all(
+  //   formatedAuction.map(async (obj) => {
+  //     const coverPicture = obj.coverPicture
+  //       ? await getPicture("productPicture", obj.coverPicture, 300, 300)
+  //       : await getPicture("productPicture", "default.jpeg", 300, 300);
+  //     return {
+  //       ...obj,
+  //       coverPicture: coverPicture,
+  //     };
+  //   })
+  // );
+
+  formatedAuction.forEach((val) => {
+    val.coverPicture = `http://52.220.108.182/api/picture/productPicture/${val.coverPicture}`;
+  });
 
   res.status(200).json({
     status: "success",
@@ -447,9 +451,10 @@ exports.getSearch = catchAsync(async (req, res, next) => {
   // Retrive productPicture
   auction = await Promise.all(
     auction.map(async (obj) => {
-      const coverPicture = obj.coverPicture[0]
-        ? await getPicture("productPicture", obj.coverPicture[0], 300, 300)
-        : await getPicture("productPicture", "default.jpeg", 300, 300);
+      // const coverPicture = obj.coverPicture[0]
+      //   ? await getPicture("productPicture", obj.coverPicture[0], 300, 300)
+      //   : await getPicture("productPicture", "default.jpeg", 300, 300);
+      const coverPicture = `http://52.220.108.182/api/picture/procutPicture/${obj.coverPicture[0]}`;
       obj.isWinning = String(obj.currentWinnerID) == decoded.id;
       obj.endDate = String(new Date(obj.endDate).getTime());
       return {
@@ -694,8 +699,12 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
   }).sort({ biddingDate: -1 });
 
   // Get product Picture
-  const productPicture = await Promise.all(
-    getPictures("productPicture", auction.productDetail.productPicture || [])
+  // const productPicture = await Promise.all(
+  //   getPictures("productPicture", auction.productDetail.productPicture || [])
+  // );
+
+  const productPicture = auction.productDetail.productPicture.map(
+    (val) => `http://52.220.108.182/api/picture/productPicture/${val}`
   );
 
   // Get fraud
@@ -946,7 +955,7 @@ exports.postBid = catchAsync(async (req, res, next) => {
       400
     );
   }
-  
+
   // Expected Price
   const expectedPriceCheck = (auction) => {
     if (auction.endDate - Date.now() <= 60 * 60 * 1000) return auction.endDate;
@@ -959,7 +968,6 @@ exports.postBid = catchAsync(async (req, res, next) => {
     return auction.endDate;
   };
 
-  
   const updatedAuction = await Auction.updateOne(
     { _id: req.params.auction_id },
     {
