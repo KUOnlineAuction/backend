@@ -31,6 +31,10 @@ exports.changeEndDate = catchAsync(async (req, res, next) => {
     const auction = await Auction.findByIdAndUpdate(req.params.auction_id, {
       endDate: Date.now() + 5 * 60 * 1000 + 20 * 1000,
     });
+  } else if (req.query.option == "ended") {
+    const auction = await Auction.findByIdAndUpdate(req.params.auction_id, {
+      endDate: Date.now() + 10 * 1000,
+    });
   } else if (req.query.option === "hour") {
     const auction = await Auction.findByIdAndUpdate(req.params.auction_id, {
       endDate: Date.now() + 65 * 60 * 1000,
