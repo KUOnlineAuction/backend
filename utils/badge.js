@@ -125,7 +125,6 @@ module.exports.gernerateBadge = catachAsync(async (req, res, next) => {
 			assignBadge.badge.push(fraud)
 		} 
 		assignBadge.save();
-
 	} 
 	
 	// newbie 
