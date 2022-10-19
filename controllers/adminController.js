@@ -16,7 +16,7 @@ exports.getBlacklist = catchAsync(async (req, res, next) => {
       $match: { userStatus: "blacklist" },
     },
     {
-      $project: { displayName: 1, userID: "$_id", email: 1, _id: 0},
+      $project: { displayName: 1, userID: "$_id", email: 1, _id: 0 },
     },
   ]);
   res.status(200).json({
@@ -60,7 +60,7 @@ exports.removeBlacklistedUser = catchAsync(async (req, res, next) => {
       userStatus: "blacklist",
     },
     {
-      userStatus: "activate",
+      userStatus: "active",
     }
   );
   if (!update) {
@@ -166,7 +166,7 @@ exports.getTransacDetail = catchAsync(async (req, res, next) => {
         $set: {
           transferDataTime: "$slip.slipDateTime",
           transactionSlip: "$slip.slipPicture",
-          telephoneNO: "$bidderPhoneNumber"
+          telephoneNO: "$bidderPhoneNumber",
         },
       },
       {
@@ -345,7 +345,7 @@ exports.getTransacList = catchAsync(async (req, res, next) => {
           winningPrice: 1,
           _id: 0,
           bidderPhoneNumber: 1,
-          address: 1
+          address: 1,
         },
       },
     ]);
