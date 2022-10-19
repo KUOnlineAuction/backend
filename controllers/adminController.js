@@ -31,14 +31,18 @@ exports.AddBlacklistedUser = catchAsync(async (req, res, next) => {
       new AppError("Please provide an email to add to the blacklist", 400)
     );
   }
-  await User.findOneAndUpdate(
+  const user = await User.findOneAndUpdate(
     {
       email: req.body.email,
+      userStatus: "active"
     },
     {
       userStatus: "blacklist",
     }
   );
+  if(!user){
+    return next (new(AppError("The user with that email doesn't exist / The user can't be blacklisted"), 400))
+  }
   res.status(200).json({
     status: "success",
   });
@@ -401,9 +405,16 @@ exports.confirmTransac = catchAsync(async (req, res, next) => {
     else if(req.body.confirmStatus === "deny"){
       auction = await Auction.findById(req.params.auction_id);
       let billingInfo = await BillingInfo.findById(auction.billingHistoryID);
+      const refund = {
+        refundeeID: auction.currentWinnerID,
+        refundAmount: billingInfo.slip.slipAmount,
+        refundStatus: false,
+        dateCreated: Date.now()
+      };
       billingInfo.billingInfoStatus = "waitingForPayment";
       billingInfo.slip = null;
       await billingInfo.save();
+      await Refund.create(refund)
     }
     else{
       return next(new AppError("Invalud confirmStatus ('confirm'/'deny' only)",400));
@@ -443,37 +454,92 @@ exports.confirmTransac = catchAsync(async (req, res, next) => {
   });
 });
 
-// exports.getRefundList = catchAsync(async (req, res, next) => {
-//   const filter = {
-//     refundStatus: false
-//   }
-//   const refunds = await Refund.find(filter)
-//   res.status(200).json({
-//     status: "success",
-//     data: refunds
-//   });
-// });
+exports.getRefundList = catchAsync(async (req, res, next) => {
+  const refunds = await Refund.aggregate([
+    { $match: { refundStatus: false } },
+    {
+      $lookup: {
+        from: "users",
+        localField: "refundeeID",
+        foreignField: "_id",
+        as: "refundee",
+      },
+    },
+    {
+      $set: {
+        refundeeEmail: { $arrayElemAt: ["$refundee.email", 0] },
+      },
+    },
+    {
+      $project: {
+        refundeeEmail: 1,
+        refundAmount: 1,
+        dateCreated: 1,
+      },
+    },
+  ])
+  for(el of refunds){
+    el.dateCreated = (el.dateCreated*1).toString();
+  }
+  res.status(200).json({
+    status: "success",
+    data: refunds
+  });
+});
 
-// exports.getRefundList = catchAsync(async (req, res, next) => {
-//   const filter = {
-//     refundStatus: false
-//   }
-//   const refunds = await Refund.find(filter)
-//   res.status(200).json({
-//     status: "success",
-//     data: refunds
-//   });
-// });
+exports.getRefundDetail = catchAsync(async (req, res, next) => {
+  if(!req.params.refundID){
+    return next(new AppError("Please provide the refundID"));
+  }
+  const refund = await Refund.findById(req.params.refundID).lean();
+  if(!refund){
+    return next(new AppError("Invalid refundID provided"));
+  }
+  const refundee = await User.findById(refund.refundeeID).lean();
+  // if the user hasn't provided the payment data
+  if(!refundee.bankNO || !refundee.bankName || !refundee.bankAccountName){
+    refund.userPaymentProvided = false;
+  } else { // if the user provided the payment data
+    refund.userPaymentProvided = true,
+    refund.bankNO = refundee.bankNO,
+    refund.bankName = refundee.bankName,
+    refund.bankAccountName = refundee.bankAccountName
+  }
+  refund.__v = undefined;
+  refund._id = undefined;
+  refund.refundStatus = undefined;
+  refund.dateCreated = (refund.dateCreated*1).toString()
+  res.status(200).json({
+    status: "success",
+    data: refund
+  })
+})
 
-// exports.refund = catchAsync(async (req, res, next) => {
-//   if(!req.params.refundID){
-//     return next(new AppError("A refund update request must contain a refund ID"), 400);
-//   }
-//   const refund = await Refund.findById(req.params.refundID);
-//   refund.refundStatus = true;
-//   refund.dateRefunded = Date.now();
-//   await refund.save();
-//   res.status(200).json({
-//     status: "success"
-//   })
-// });
+exports.confirmRefund = catchAsync(async (req, res, next) => {
+  if(!req.params.refundID){
+    return next(new AppError("A refund update request must contain a refund ID"), 400);
+  }
+  const refund = await Refund.findById(req.params.refundID);
+  if(!refund){
+    return next(new AppError("Cannot find the refund"),400);
+  }
+  refund.refundStatus = true;
+  refund.dateRefunded = Date.now();
+  await refund.save();
+  res.status(200).json({
+    status: "success"
+  })
+});
+
+exports.testCreateRefund = catchAsync(async (req, res, next) => {
+  const refund = {
+    refundeeID: req.user.id,
+    refundAmount: req.body.refundAmount,
+    refundStatus: false,
+    dateCreated: Date.now()
+  }
+  const createdRefund = await Refund.create(refund)
+  res.status(201).json({
+    status: "success"
+  })
+})
