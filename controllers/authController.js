@@ -88,7 +88,7 @@ exports.signup = catchAsync(async (req, res, next) => {
         await User.deleteOne(newUser)
         return next(new AppError("Internal server error",500))
     }
-    
+    // await gernerateBadge();
     res.status(201).json({
         "status": "success"
     })
@@ -288,6 +288,11 @@ exports.protect = catchAsync(async (req, res, next) => {
     // 5) Check if user is signed out or not
     if (freshUser.passwordInvalidDate < Date.now()){
         return next(new AppError('The user has logged out. Please log in again to enter this site.'))
+    }
+
+    // 6) Check if the user is blacklisted
+    if (freshUser.userStatus === "blacklist"){
+        return next(new AppError('The user has been blacklisted. Contact with the staff for more detail.'))
     }
 
     // Grant Access to protected route
