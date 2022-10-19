@@ -155,15 +155,16 @@ exports.myorder = catchAsync(async (req, res, next) => {
     el.auctionID = el._id;
     const auctioneerDisplayname = await User.findById(el.auctioneerID);
     el.auctioneerDisplayname = auctioneerDisplayname.displayName;
-    // comment next line if picture hasn't been implemented
-    const aucPic = await getPicture(
-      "productPicture",
-      el.productDetail.productPicture[0]
-    );
-    if (!aucPic) {
-      return next(new AppError("Couldn't find the picture"), 500);
-    }
-    el.productPicture = aucPic;
+    // // comment next line if picture hasn't been implemented
+    // const aucPic = await getPicture(
+    //   "productPicture",
+    //   el.productDetail.productPicture[0]
+    // );
+    // if (!aucPic) {
+    //   return next(new AppError("Couldn't find the picture"), 500);
+    // }
+    // el.productPicture = aucPic;
+    el.productPicture = `http://52.220.108.182/api/picture/profilePicture/${el.productDetail.productPicture[0]}`;
     el.productName = el.productDetail.productName;
     el.lastBid = el.currentPrice;
     if (el.auctionStatus === "bidding") {
@@ -255,39 +256,40 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
   }
 
   // 5) get the user profile pic
-  user.profilePicture = await getPicture(
-    "profilePicture",
-    user.profilePicture,
-    200,
-    200
-  );
+  user.profilePicture = `http://52.220.108.182/api/picture/profilePicture/${user.profilePicture}`;
+  // user.profilePicture = await getPicture(
+  //   "profilePicture",
+  //   user.profilePicture,
+  //   200,
+  //   200
+  // );
 
   // 6) get the auctions
-  let queryString = [];
-  for (let el of user.activeAuctionList) {
-    queryString.push(mongoose.Types.ObjectId(el));
-  }
+  // let queryString = [];
+  // for (let el of user.activeAuctionList) {
+  //   queryString.push(mongoose.Types.ObjectId(el));
+  // }
 
-  let auctions = await Auction.find({
-    _id: { $in: queryString },
-  })
-    .select("productDetail endDate currentPrice")
-    .sort("endDate")
-    .lean();
+  // let auctions = await Auction.find({
+  //   _id: { $in: queryString },
+  // })
+  //   .select("productDetail endDate currentPrice")
+  //   .sort("endDate")
+  //   .lean();
 
-  for (let el of auctions) {
-    // comment next line if picture hasn't been implemented
-    el.productPicture = await getPicture(
-      "productPicture",
-      el.productDetail.productPicture[0]
-    );
-    el.productName = el.productDetail.productName;
-    el.productDetail._id = undefined;
-    el.productDetail = undefined;
-    el.endDate = (el.endDate * 1).toString();
-  }
+  // for (let el of auctions) {
+  //   // comment next line if picture hasn't been implemented
+  //   el.productPicture = await getPicture(
+  //     "productPicture",
+  //     el.productDetail.productPicture[0]
+  //   );
+  //   el.productName = el.productDetail.productName;
+  //   el.productDetail._id = undefined;
+  //   el.productDetail = undefined;
+  //   el.endDate = (el.endDate * 1).toString();
+  // }
 
-  user.activeAuctionList = auctions;
+  // user.activeAuctionList = auctions;
 
   res.status(200).json({
     status: "success",
