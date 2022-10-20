@@ -472,7 +472,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
       // const coverPicture = obj.coverPicture[0]
       //   ? await getPicture("productPicture", obj.coverPicture[0], 300, 300)
       //   : await getPicture("productPicture", "default.jpeg", 300, 300);
-      const coverPicture = `http://52.220.108.182/api/picture/procutPicture/${obj.coverPicture[0]}`;
+      const coverPicture = `http://52.220.108.182/api/picture/productPicture/${obj.coverPicture[0]}`;
       obj.isWinning = String(obj.currentWinnerID) == decoded.id;
       obj.endDate = String(new Date(obj.endDate).getTime());
       return {
