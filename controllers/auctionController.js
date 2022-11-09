@@ -682,7 +682,7 @@ exports.postAuction = catchAsync(async (req, res, next) => {
   savePictures(
     "productPicture",
     req.body.productPicture,
-    productPictureNames.at,
+    productPictureNames,
     null,
     null,
     100,
