@@ -24,6 +24,7 @@ const billingInfoStatusEnum = [
   "waitingForConfirm",
   "waitingAdminPayment",
   "completed",
+  "failed",
 ];
 const backNameEnum = [
   "BBL",
@@ -46,6 +47,11 @@ const backNameEnum = [
   "IBT",
   "TCRB",
   "HSBC",
+];
+const failureMessage = [
+  "biddderPaymentDeadlineBroken", 
+  "auctioneerShippingDeadlineBroken",
+  "bidderDenyItemReceive",
 ];
 
 const billingBankAccountSchema = new mongoose.Schema({
@@ -114,6 +120,9 @@ const billingInfoSchema = new mongoose.Schema({
     enum: billingInfoStatusEnum,
     default: "waitingForPayment",
   },
+  bidderPaymentDeadline: {
+    type: Date
+  },
   deliverDeadlineBroken: {
     type: Boolean,
     default: false
@@ -123,6 +132,10 @@ const billingInfoSchema = new mongoose.Schema({
   },
   confirmItemRecieveDeadline:{
     type: Date
+  },
+  failureCause: {
+    type: String,
+    enum: failureMessage
   }
 });
 
