@@ -19,4 +19,12 @@ router.get('/transaction/:billingInfoID', adminController.getTransacDetail) // d
 router.get('/transaction-list', adminController.getTransacList) // done
 router.post('/transaction/confirm/:auction_id', adminController.confirmTransac) // done
 
+// Refund Related Route
+router.get('/refundlist', adminController.getRefundList) // done
+router.get('/refund/:refundID', adminController.getRefundDetail) // not done
+router.post('/refund/:refundID', adminController.confirmRefund) // not done
+
+// Refund test
+router.post('/testrefund', adminController.testCreateRefund) // not done
+
 module.exports = router

@@ -12,11 +12,12 @@ const badge = require("./../utils/badge");
 exports.createReview = catchAsync(async (req, res, next) => {
   const auctionID = await Auction.findById(req.params.auction_id);
 
-  if (!auctionID) return next(new AppError("Auction not found"));
+  if (!auctionID) return next(new AppError("Auction not found", 404));
 
   // console.log(auctionID.currentWinnerID);
   const checkAuctionID = Auction.findById(req.params.auction_id);
-  if (!checkAuctionID) return next(new AppError("This Auction is never occur"));
+  if (!checkAuctionID)
+    return next(new AppError("This Auction is never occur", 400));
 
   const review = await Review.create({
     reviewerID: auctionID.currentWinnerID,
@@ -35,7 +36,7 @@ exports.createReview = catchAsync(async (req, res, next) => {
   // if (!(req.User._id === auctionID.currentWinnerID)) return next(new AppError('Biider and Reviewer are not the same one'));
 
   // 2) review auction has only one
-  badge.gernerateBadge();
+  // badge.gernerateBadge();
 
   res.status(201).json({
     status: "success",

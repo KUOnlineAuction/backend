@@ -26,7 +26,7 @@ const app = express();
 
 // Global Middlewares
 // Set Security HTTP headers
-app.use(helmet());
+// app.use(helmet());
 
 // Developement logging
 if (process.env.NODE_ENV === "development") {
