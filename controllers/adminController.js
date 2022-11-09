@@ -15,7 +15,7 @@ exports.getBlacklist = catchAsync(async (req, res, next) => {
       $match: { userStatus: "blacklist" },
     },
     {
-      $project: { displayName: 1, userID: "$_id", _id: 0 },
+      $project: { displayName: 1, userID: "$_id", email: 1, _id: 0 },
     },
   ]);
   res.status(200).json({
@@ -55,7 +55,7 @@ exports.removeBlacklistedUser = catchAsync(async (req, res, next) => {
       userStatus: "blacklist",
     },
     {
-      userStatus: "activate",
+      userStatus: "active",
     }
   );
   if (!update) {
@@ -159,9 +159,9 @@ exports.getTransacDetail = catchAsync(async (req, res, next) => {
       },
       {
         $set: {
-          telephoneNO: { $arrayElemAt: ["$winner.phoneNumber", 0] },
           transferDataTime: "$slip.slipDateTime",
           transactionSlip: "$slip.slipPicture",
+          telephoneNO: "$bidderPhoneNumber",
         },
       },
       {
@@ -195,8 +195,8 @@ exports.getTransacDetail = catchAsync(async (req, res, next) => {
       {
         $set: {
           bankName: "$billingBankAccount.bankName",
-          AccountNumber: "$billingBankAccount.bankNO",
-          AccountName: "$billingBankAccount.auctioneerName",
+          accountNumber: "$billingBankAccount.bankNO",
+          accountName: "$billingBankAccount.auctioneerName",
           trackingNumber: "$deliverInfo.trackingNumber",
           shippingCompany: "$deliverInfo.shippingCompany",
           packagePicture: "$deliverInfo.packagePicture",
@@ -205,8 +205,8 @@ exports.getTransacDetail = catchAsync(async (req, res, next) => {
       {
         $project: {
           bankName: 1,
-          AccountNumber: 1,
-          AccountName: 1,
+          accountNumber: 1,
+          accountName: 1,
           trackingNumber: 1,
           shippingCompany: 1,
           packagePicture: 1,
@@ -339,6 +339,8 @@ exports.getTransacList = catchAsync(async (req, res, next) => {
           auctioneerEmail: 1,
           winningPrice: 1,
           _id: 0,
+          bidderPhoneNumber: 1,
+          address: 1,
         },
       },
     ]);

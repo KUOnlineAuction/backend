@@ -581,9 +581,10 @@ exports.postFollow = catchAsync(async (req, res, next) => {
         index,
         arr
       ) {
-        return value == req.params.auction_id;
+        return value != req.params.auction_id;
       });
     }
+    console.log(String(user.followingList[0]) == req.params.auction_id);
   } else {
     return next(new AppError("Please enter either true or false"), 400);
   }
@@ -863,11 +864,13 @@ exports.refresh = catchAsync(async (req, res, next) => {
   // 5 minute System currentPrice condition
   if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
     if (
-      bidHistory[0] &&
-      auction.endDate - bidHistory[0].biddingDate <= 5 * 60 * 1000
+      bidHistoryBefore5[0] &&
+      auction.endDate - bidHistoryBefore5[0].biddingDate <= 5 * 60 * 1000
     ) {
       isAlreadyBid5Minute = true;
-      currentPrice = bidHistory[0] ? bidHistory[0].biddingPrice : 0;
+      currentPrice = bidHistoryBefore5[0]
+        ? bidHistoryBefore5[0].biddingPrice
+        : 0;
     } else {
       currentPrice = bidHistoryBefore5[0]
         ? bidHistoryBefore5[0].biddingPrice
@@ -902,7 +905,17 @@ exports.postBid = catchAsync(async (req, res, next) => {
 
   if (auction.auctioneerID == user_id)
     return next(new AppError("You cannot bid your own auction", 400));
+
+  // If postBid after bidding endded
+  if (auction.auctionStatus !== "bidding")
+    return next(new AppError("Bid is already ended"), 400);
+
+  // 5 minute system
+  let auctionUpdatedCurrentPrice = req.body.biddingPrice;
+  let auctionUpdatedCurrentWinnerID = user_id;
   if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
+    auctionUpdatedCurrentPrice = auction.currentPrice;
+    auctionUpdatedCurrentWinnerID = auction.currentWinnerID;
     // If auction already in 5 minute system user can only bid once
     const bidHistory = await BidHistory.find({
       bidderID: user._id,
@@ -914,15 +927,18 @@ exports.postBid = catchAsync(async (req, res, next) => {
 
     if (bidHistory.length > 0)
       return next(new AppError("5 minute auction can be only bid once"), 400);
+
+    if (req.body.biddingPrice > auction.currentPrice) {
+      auctionUpdatedCurrentPrice = req.body.biddingPrice;
+      auctionUpdatedCurrentWinnerID = user._id;
+    }
   }
 
-  // If postBid after bidding endded
-
-  if (auction.auctionStatus !== "bidding")
-    return next(new AppError("Bid is already ended"), 500);
-
   const bidStep = auction.bidStep || defaultMinimumBid(auction.currentPrice);
-  if (req.body.biddingPrice < auction.currentPrice + bidStep) {
+  if (
+    req.body.biddingPrice < auction.currentPrice + bidStep &&
+    !(auction.endDate - Date.now() <= 5 * 60 * 1000)
+  ) {
     return next(
       new AppError(
         "The input bid is lower than the current bid + minimum bid step"
@@ -930,7 +946,8 @@ exports.postBid = catchAsync(async (req, res, next) => {
       400
     );
   }
-
+  
+  // Expected Price
   const expectedPriceCheck = (auction) => {
     if (auction.endDate - Date.now() <= 60 * 60 * 1000) return auction.endDate;
     if (
@@ -942,7 +959,7 @@ exports.postBid = catchAsync(async (req, res, next) => {
     return auction.endDate;
   };
 
-  // Expected Price
+  
   const updatedAuction = await Auction.updateOne(
     { _id: req.params.auction_id },
     {
