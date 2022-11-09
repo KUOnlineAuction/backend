@@ -101,8 +101,8 @@ cron.schedule("* * * * *", async() => {
                 const newBillingInfo = {
                     auctionID: updatedAuction._id,
                     winningPrice: updatedAuction.currentPrice,
+                    bidderPaymentDeadline: Date.now() + bidderPaymentDeadlineLength * 1000 * 60 * 60 * 24,
                 }
-                const createdBillingInfo = await BillingInfo.create(newBillingInfo)
                 updatedAuction.billingHistoryID = createdBillingInfo._id
                 await updatedAuction.save({ validateBeforeSave: false })
                 await User.findByIdAndUpdate(updatedAuction.auctioneerID, {
@@ -200,7 +200,7 @@ cron.schedule("0 0 * * *", async () => {
 
 // // Routine checking for delivering deadline (Every day at midnight)
 // const test = async () => {
-cron.schedule("0 0 * * *", async () => {
+cron.schedule("* * * * *", async () => {
   const filter = {
     deliverDeadline: { $lt: Date.now() },
     billingInfoStatus: "waitingForShipping",
@@ -209,6 +209,7 @@ cron.schedule("0 0 * * *", async () => {
   const update = {
     billingInfoStatus: "failed",
     failureCause: "auctioneerShippingDeadlineBroken",
+    deliverDeadlineBroken: true
   };
   const billingsFound = await BillingInfo.aggregate([
     {
@@ -244,12 +245,12 @@ cron.schedule("0 0 * * *", async () => {
 
     // create refund document
     let refund = {
-      refundeeID: el.currentWinnerID,
+      refundeeID: mongoose.Types.ObjectId(el.currentWinnerID),
       refundAmount: el.slip.slipAmount,
       refundStatus: false,
       dateCreated: Date.now()
     }
-    const createdRefund = await Refund.create(refund)
+    const createdRefund = await Refund.create(refund);
   }
   const billingsUpdate = await BillingInfo.updateMany(filter, update);
   console.log(
@@ -263,11 +264,10 @@ cron.schedule("0 0 * * *", async () => {
 cron.schedule("0 0 * * *", async () => {
   const filter = {
     confirmItemRecieveDeadline: { $lt: new Date() },
-    billingInfoStatus: "waitingAdminPayment",
-    bidderPaymentDeadline: Date.now() + 1000 * 60 * 60 * 24 * bidderPaymentDeadlineLength
+    billingInfoStatus: "waitingForConfirm",
   };
   const update = {
-    billingInfoStatus: completed,
+    billingInfoStatus: "waitingAdminPayment",
   };
   const billingsUpdate = await BillingInfo.updateMany(filter, update);
   console.log(
@@ -280,7 +280,6 @@ cron.schedule("0 0 * * *", async () => {
 // const destroyer = async ()=>{
   const filter = {
     autoDestroy: { $lt: new Date() },
-    auctionStatus: "finished"
   };
   const documentDestroyingList = await Auction.find(filter, '_id')
   for (el of documentDestroyingList){
