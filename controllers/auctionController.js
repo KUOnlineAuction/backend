@@ -377,95 +377,41 @@ exports.getSearch = catchAsync(async (req, res, next) => {
   const name = req.query.name;
   const category = req.query.category;
 
-  //1) Search by name or category
-  let auction;
-  if (name && !category) {
-    //Search by Name
-    auction = await Auction.aggregate([
-      { $unwind: "$productDetail" },
-      {
-        $match: {
-          "productDetail.productName": { $regex: `${name}`, $options: "i" },
-          auctionStatus: "bidding",
-        },
-      },
-      {
-        $project: {
-          auctionID: "$_id",
-          productName: "$productDetail.productName",
-          category: "$productDetail.category",
-          coverPicture: "$productDetail.productPicture",
-          endDate: "$endDate",
-          currentPrice: "$currentPrice",
-          currentWinnerID: "$currentWinnerID",
-          isWinning: {
-            $eq: ["$currentWinnerID", decoded.id],
-          },
-          timeRemaining: {
-            $subtract: ["$endDate", Date.now()],
-          },
-        },
-      },
-    ]);
-  } else if (name && category) {
-    console.log(name);
-    console.log(category);
-    //Search By Category and Name
-    auction = await Auction.aggregate([
-      {
-        $match: {
-          "productDetail.category": category,
-          "productDetail.productName": { $regex: `${name}`, $options: "i" },
-          auctionStatus: "bidding",
-        },
-      },
-      {
-        $project: {
-          auctionID: "$_id",
-          productName: "$productDetail.productName",
-          category: "$productDetail.category",
-          coverPicture: "$productDetail.productPicture",
-          endDate: "$endDate",
-          currentPrice: "$currentPrice",
-          //isWinning พังอยู่
-          isWinning: {
-            $eq: ["$currentWinnerID", { $toObjectId: decoded.id }],
-          },
-          timeRemaining: {
-            $subtract: ["$endDate", Date.now()],
-          },
-        },
-      },
-    ]);
-  } else {
-    //Search By Category
-    auction = await Auction.aggregate([
-      { $unwind: "$productDetail" },
-      {
-        $match: {
-          "productDetail.category": category,
-          auctionStatus: "bidding",
-        },
-      },
-      {
-        $project: {
-          auctionID: "$_id",
-          productName: "$productDetail.productName",
-          category: "$productDetail.category",
-          coverPicture: "$productDetail.productPicture",
-          endDate: "$endDate",
-          currentPrice: "$currentPrice",
-          //isWinning พังอยู่
-          isWinning: {
-            $eq: ["$currentWinnerID", { $toObjectId: decoded.id }],
-          },
-          timeRemaining: {
-            $subtract: ["$endDate", Date.now()],
-          },
-        },
-      },
-    ]);
+  
+  const match = {
+      auctionStatus: "bidding",
+  };
+  //1) Search by Name
+  if(name){
+	  match["productDetail.productName"] = { $regex: `${name}`, $options: "i" };
   }
+  //1) Search by Category
+  if(category){
+	  match["productDetail.category"] = category;
+  }
+  let auction = await Auction.aggregate([
+    { $unwind: "$productDetail" },
+    {
+      $match: match,
+    },
+    {
+      $project: {
+        auctionID: "$_id",
+        productName: "$productDetail.productName",
+        category: "$productDetail.category",
+        coverPicture: "$productDetail.productPicture",
+        endDate: "$endDate",
+        currentPrice: "$currentPrice",
+        currentWinnerID: "$currentWinnerID",
+        isWinning: {
+          $eq: ["$currentWinnerID", decoded.id],
+        },
+        timeRemaining: {
+          $subtract: ["$endDate", Date.now()],
+        },
+      },
+    },
+  ]);
   // Retrive productPicture
   auction = await Promise.all(
     auction.map(async (obj) => {
