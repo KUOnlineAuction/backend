@@ -196,7 +196,7 @@ exports.myorder = catchAsync(async (req, res, next) => {
       el.billingStatus = null;
     } else if (el.billingHistoryID) {
       const bill = await BillingInfo.findById(el.billingHistoryID)
-        .select("billingInfoStatus")
+        .select("billingInfoStatus failureCause")
         .lean();
       // console.log(el._id, el.billingHistoryID, bill)
       el.billingStatus = bill.billingInfoStatus;

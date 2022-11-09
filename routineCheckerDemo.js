@@ -91,6 +91,14 @@ cron.schedule("* * * * *", async() => {
             if(!updatedAuction.currentWinnerID){
                 // change the bidding to "finished"
                 updatedAuction.auctionStatus = "finished"
+                const newBillingInfo = {
+                  auctionID: updatedAuction._id,
+                  winningPrice: updatedAuction.currentPrice,
+                  billingInfoStatus: "failed",
+                  failureCause: "noBidders"
+                }
+                createdBillingInfo = await BillingInfo.create(newBillingInfo);
+                updatedAuction.billingHistoryID = createdBillingInfo._id
                 await updatedAuction.save({ validateBeforeSave: false })
             }
             
@@ -103,6 +111,7 @@ cron.schedule("* * * * *", async() => {
                     winningPrice: updatedAuction.currentPrice,
                     bidderPaymentDeadline: Date.now() + bidderPaymentDeadlineLength * 1000 * 60 * 60 * 24,
                 }
+                createdBillingInfo = await BillingInfo.create(newBillingInfo);
                 updatedAuction.billingHistoryID = createdBillingInfo._id
                 await updatedAuction.save({ validateBeforeSave: false })
                 await User.findByIdAndUpdate(updatedAuction.auctioneerID, {
