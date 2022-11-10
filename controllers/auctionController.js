@@ -377,17 +377,16 @@ exports.getSearch = catchAsync(async (req, res, next) => {
   const name = req.query.name;
   const category = req.query.category;
 
-  
   const match = {
-      auctionStatus: "bidding",
+    auctionStatus: "bidding",
   };
   //1) Search by Name
-  if(name){
-	  match["productDetail.productName"] = { $regex: `${name}`, $options: "i" };
+  if (name) {
+    match["productDetail.productName"] = { $regex: `${name}`, $options: "i" };
   }
   //1) Search by Category
-  if(category){
-	  match["productDetail.category"] = category;
+  if (category) {
+    match["productDetail.category"] = category;
   }
   let auction = await Auction.aggregate([
     { $unwind: "$productDetail" },
@@ -831,7 +830,7 @@ exports.refresh = catchAsync(async (req, res, next) => {
 
   let isAlreadyBid5Minute = false;
   let bidHistoryBefore5 = await BidHistory.find({
-    auctionID: auctionId,
+    auctionID: req.params.auction_id,
   }).sort({ biddingDate: -1 });
 
   bidHistoryBefore5 = bidHistoryBefore5.filter(
