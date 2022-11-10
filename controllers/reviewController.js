@@ -30,7 +30,8 @@ exports.createReview = catchAsync(async (req, res, next) => {
   const user = await User.findById(auctionID.auctioneerID);
   // 0) Auction never occur
   user.reviewList.push(review._id);
-  
+  user.rating = req.body.rating / user.totalAuctioned + user.rating;
+
   // 1) check winner bidder and reviever is the same
   // if (!(req.User._id === auctionID.currentWinnerID)) return next(new AppError('Biider and Reviewer are not the same one'));
 
