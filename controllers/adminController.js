@@ -8,7 +8,7 @@ const Auction = require("./../models/auctionModel");
 const { getPicture } = require("./../utils/getPicture");
 const Refund = require("./../models/refundModel");
 
-const daysToDeliver = 5;
+const daysToDeliver = 3;
 
 exports.getBlacklist = catchAsync(async (req, res, next) => {
   const blacklistedUsers = await User.aggregate([

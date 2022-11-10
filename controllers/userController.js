@@ -51,6 +51,30 @@ exports.myProfile = catchAsync(async (req, res, next) => {
   });
 });
 
+exports.myPayment = catchAsync(async (req, res, next) => {
+  // 1) query user
+  let user = await User.findById(req.user.id)
+    .select(
+      "bankNO bankName bankAccountName"
+    )
+    .lean();
+
+  if (!user) {
+    return next(new AppError("something went wrong", 400));
+  }
+
+  // 2) Fill the data with blanks if no info provided
+  user.bankNO = (user.bankNO) ? user.bankNO : "";
+  user.bankName = (user.bankName) ? user.bankName : "";
+  user.bankAccountName = (user.bankAccountName) ? user.bankAccountName : "";
+  user._id = undefined;
+
+  res.status(200).json({
+    status: "success",
+    data: user,
+  });
+});
+
 exports.editProfle = catchAsync(async (req, res, next) => {
   // 1) find the user
   const user = await User.findById(req.user.id);
@@ -172,7 +196,7 @@ exports.myorder = catchAsync(async (req, res, next) => {
       el.billingStatus = null;
     } else if (el.billingHistoryID) {
       const bill = await BillingInfo.findById(el.billingHistoryID)
-        .select("billingInfoStatus")
+        .select("billingInfoStatus failureCause")
         .lean();
       // console.log(el._id, el.billingHistoryID, bill)
       el.billingStatus = bill.billingInfoStatus;

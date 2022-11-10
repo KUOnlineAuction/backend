@@ -7,6 +7,8 @@ const catchAsync = require("./../utils/catchAsync");
 const AppError = require("./../utils/appError");
 const { getPicture, savePicture } = require("./../utils/getPicture");
 
+const confirmItemRecieveDeadlineLength = 10;
+
 exports.createDelivery = catchAsync(async (req, res, next) => {
   const billingInfo = await BillingInfo.findOne({
     auctionID: req.params.auction_id,
@@ -29,6 +31,8 @@ exports.createDelivery = catchAsync(async (req, res, next) => {
   billingInfo.billingInfoStatus = "waitingForConfirm";
 
   savePicture(req.body.packagePicture, "packagePicture", pictureName);
+
+  billingInfo.confirmItemRecieveDeadline = Date.now() + confirmItemRecieveDeadlineLength * 1000 * 60 * 60 * 24;
 
   billingInfo.save();
 
@@ -87,10 +91,10 @@ exports.confirmDelivery = catchAsync(async (req, res, next) => {
   if (!billingInfo) return next(new AppError("BillingInfo not found", 400));
   billingInfo.billingInfoStatus = req.body.confirm
     ? "waitingAdminPayment"
-    : "completed";
+    : "fail";
 
   //Create reprot if deny
-  if (!billingInfo.billingInfoStatus) {
+  if (billingInfo.billingInfoStatus === "fail") {
     const auction = await Auction.findById(req.params.auction_id);
     const user = await User.findById(auction.auctioneerID);
     const report = await Report.create({

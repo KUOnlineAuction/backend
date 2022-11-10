@@ -49,6 +49,7 @@ const backNameEnum = [
   "HSBC",
 ];
 const failureMessage = [
+  "noBidders",
   "biddderPaymentDeadlineBroken", 
   "auctioneerShippingDeadlineBroken",
   "bidderDenyItemReceive",
