@@ -200,6 +200,7 @@ exports.myorder = catchAsync(async (req, res, next) => {
         .lean();
       // console.log(el._id, el.billingHistoryID, bill)
       el.billingStatus = bill.billingInfoStatus;
+      el.failureCause = bill.failureCause;
       el.endDate = undefined;
     } else {
       el.endDate = undefined;
