@@ -37,6 +37,7 @@ exports.createReview = catchAsync(async (req, res, next) => {
 
   // 2) review auction has only one
   // badge.gernerateBadge();
+  user.save();
 
   res.status(201).json({
     status: "success",
