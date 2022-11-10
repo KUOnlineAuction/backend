@@ -30,7 +30,7 @@ module.exports.gernerateBadge = catchAsync(async (userId) => {
  	 } 
 
  	 // fruad 
- 	 const checkFraud = false ;
+ 	 let checkFraud = false ;
 	if (user.totalAuctioned > 5 && (user.successAuctioned < user.totalAuctioned / 2 || user.rating < 2)){
 		checkFraud = true ;
 	} 	   
