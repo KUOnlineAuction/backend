@@ -45,9 +45,11 @@ exports.getBillingInfo = catchAsync(async (req, res, next) => {
       null,
       null,
       true
+
     ),
     billingInfoStatus: billingInfo.billingInfoStatus,
     isAuctioneer: decoded.id === String(auction.auctioneerID),
+    failureCause : billingInfo.failureCause
   };
 
   res.status(200).json({
