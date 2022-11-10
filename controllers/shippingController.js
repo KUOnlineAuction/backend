@@ -91,7 +91,7 @@ exports.confirmDelivery = catchAsync(async (req, res, next) => {
   if (!billingInfo) return next(new AppError("BillingInfo not found", 400));
   billingInfo.billingInfoStatus = req.body.confirm
     ? "waitingAdminPayment"
-    : "fail";
+    : "failed";
 
   //Create reprot if deny
   if (billingInfo.billingInfoStatus === "fail") {

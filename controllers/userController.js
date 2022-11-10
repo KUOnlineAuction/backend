@@ -241,7 +241,7 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
   // 1) find the user + check if valid
   let user = await User.findById(req.params.id)
     .select(
-      "displayName activeAuctionList email phoneNumber address description profilePicture rating totalAuctioned successAuctioned badge reviewList"
+      "displayName activeAuctionList email phoneNumber address accountDescription profilePicture rating totalAuctioned successAuctioned badge reviewList"
     )
     .lean();
   if (!user) {
