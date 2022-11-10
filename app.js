@@ -11,7 +11,7 @@ const cors = require("cors");
 const AppError = require("./utils/appError");
 const globalErrorHandler = require("./controllers/errorController");
 
-// const testRouter = require('./routes/testRoutes')
+const testRouter = require('./routes/testRoutes')
 const userRouter = require("./routes/userRoutes");
 const auctionRouter = require("./routes/auctionRoutes");
 const reportRouter = require("./routes/reportRoutes");
@@ -77,7 +77,7 @@ app.use((req, res, next) => {
 
 // Route
 
-// app.use('/test', testRouter);
+ app.use('/test', testRouter);
 app.use("/user", userRouter);
 app.use("/admin", adminRouter);
 app.use("/auction", auctionRouter);

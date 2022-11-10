@@ -52,33 +52,16 @@ module.exports.gernerateBadge = catchAsync(async (userId) => {
 		user.badge.push(top_seller_100);
 	}
  	   
-	// top 10 100 newbie
-	const auction = await  user.find().select("successauctioned").select("_id").select("badge");
-	auction.sort((a,b)=>{
-		return b.successauctioned - a.successauctioned ;
-	})
-	for (let i = 0 ; i <  auction.length ; i++ ){
-
-		if ( i <= 10 ){
-			auction[i].badge.push(top_10);
-		}
-		else if ( i<=100 ) {
-			auction[i].badge.push(top_100);
-		}
-		if (auction[i].badge === 0){
-			auction[i].badge.push(newbie);
-		}
-		auction[i].save();
-	}
-	
-	   //newbie
-     //if (user.badge.length === 0 ){
-            //user.badge.push(newbie);
-      //}
+ 	 
+ 	 // newbie
+     if (user.badge.length === 0 ){
+ 	   	user.badge.push(newbie);
+ 	 }
  	  
 	
  	 // save 
  	 user.save();
+	
  	 // #####################################
  	 res.status(200).json({
  	   status: "success",

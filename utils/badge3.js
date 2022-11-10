@@ -2,6 +2,8 @@ const User = require("./../models/userModel");
 const Auction = require("../models/auctionModel");
 const Badge = require("./../models/badgeModel");
 const catchAsync = require("./../utils/catchAsync");
+const auctionController = require("./../controllers/auctionController");
+
 
 module.exports.gernerateBadge = catchAsync(async (userId) => {
 
@@ -52,33 +54,36 @@ module.exports.gernerateBadge = catchAsync(async (userId) => {
 		user.badge.push(top_seller_100);
 	}
  	   
-	// top 10 100 newbie
-	const auction = await  user.find().select("successauctioned").select("_id").select("badge");
-	auction.sort((a,b)=>{
-		return b.successauctioned - a.successauctioned ;
-	})
-	for (let i = 0 ; i <  auction.length ; i++ ){
+ 	// top	 
+	const successAuctioned = await  User.find().select("_id").select("successAuctioned");
+	successAuctioned.sort((a,b)=>{
+		return b.successAuctioned - a.successAuctioned ;
+	});
+	for (let i = 0 ; i < successAuctioned.length ; i++ ){
+		if ( i > 100 ) {
+			break ;
+		}
+		if ( i <= 10  ){
+			successAuctioned[i].badge.push(top_10);
+		}
+		else {
+			successAuctioned[i].badge.push(top_100);
+		}
+		successAuctioned[i].save();
 
-		if ( i <= 10 ){
-			auction[i].badge.push(top_10);
-		}
-		else if ( i<=100 ) {
-			auction[i].badge.push(top_100);
-		}
-		if (auction[i].badge === 0){
-			auction[i].badge.push(newbie);
-		}
-		auction[i].save();
 	}
 	
-	   //newbie
-     //if (user.badge.length === 0 ){
-            //user.badge.push(newbie);
-      //}
+
+	
+ 	 // newbie
+     if (user.badge.length === 0 ){
+ 	   	user.badge.push(newbie);
+ 	 }
  	  
 	
  	 // save 
  	 user.save();
+	 auction.save();
  	 // #####################################
  	 res.status(200).json({
  	   status: "success",
