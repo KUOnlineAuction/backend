@@ -1,0 +1,12 @@
+# Online auction frontend
+[Unit]
+Description=Frontend for online auction
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/npm run start:prod --prefix /srv/run/backend
+EnvironmentFile=-/srv/run/backend/config.env
+
+[Install]
+WantedBy=multi-user.target
