@@ -18,28 +18,28 @@ module.exports.gernerateBadge = catchAsync(async (userId) => {
   const user = await User.findById(userId);
 
   // top 10 100 newbie
-  const auction = await User.find()
-    .select("successauctioned")
-    .select("_id")
-    .select("badge");
-  auction.sort((a, b) => {
-    return b.successauctioned - a.successauctioned;
-  });
-  for (let i = 0; i < auction.length; i++) {
-	auction[i].badge = [] ;
-    if (i <= 10) {
-      auction[i].badge.push(top_10);
-    } else if (i <= 100) {
-      auction[i].badge.push(top_100);
-    }
-    //if (auction[i].badge === 0) {
-      //auction[i].badge.push(newbie);
+  //const auction = await User.find()
+    //.select("successauctioned")
+    //.select("_id")
+    //.select("badge");
+  //auction.sort((a, b) => {
+    //return b.successauctioned - a.successauctioned;
+  //});
+  //for (let i = 0; i < auction.length; i++) {
+	//auction[i].badge = [] ;
+    //if (i <= 10) {
+      //auction[i].badge.push(top_10);
+    //} else if (i <= 100) {
+      //auction[i].badge.push(top_100);
     //}
-    auction[i].save();
-  }
+	//if (auction[i].badge === 0) {
+	  //auction[i].badge.push(newbie);
+	//}
+    //auction[i].save();
+  //}
 	
   // clear Badge
-  //user.badge = [];
+  user.badge = [];
 
   // assign Badge
 
