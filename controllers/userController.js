@@ -188,7 +188,7 @@ exports.myorder = catchAsync(async (req, res, next) => {
     //   return next(new AppError("Couldn't find the picture"), 500);
     // }
     // el.productPicture = aucPic;
-    el.productPicture = `http://52.220.108.182/api/picture/productPicture/${el.productDetail.productPicture[0]}`;
+    el.productPicture = `/api/picture/productPicture/${el.productDetail.productPicture[0]}`;
     el.productName = el.productDetail.productName;
     el.lastBid = el.currentPrice;
     if (el.auctionStatus === "bidding") {
@@ -281,7 +281,7 @@ exports.aucProfile = catchAsync(async (req, res, next) => {
   }
 
   // 5) get the user profile pic
-  user.profilePicture = `http://52.220.108.182/api/picture/profilePicture/${user.profilePicture}`;
+  user.profilePicture = `/api/picture/profilePicture/${user.profilePicture}`;
   // user.profilePicture = await getPicture(
   //   "profilePicture",
   //   user.profilePicture,
