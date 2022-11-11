@@ -359,7 +359,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
   // );
 
   formatedAuction.forEach((val) => {
-    val.coverPicture = `/api/picture/productPicture/${val.coverPicture}`;
+    val.coverPicture = `/picture/productPicture/${val.coverPicture}`;
   });
 
   res.status(200).json({
@@ -417,7 +417,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
       // const coverPicture = obj.coverPicture[0]
       //   ? await getPicture("productPicture", obj.coverPicture[0], 300, 300)
       //   : await getPicture("productPicture", "default.jpeg", 300, 300);
-      const coverPicture = `/api/picture/productPicture/${obj.coverPicture[0]}`;
+      const coverPicture = `/picture/productPicture/${obj.coverPicture[0]}`;
       obj.isWinning = String(obj.currentWinnerID) == decoded.id;
       obj.endDate = String(new Date(obj.endDate).getTime());
       return {
@@ -675,7 +675,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
   // );
 
   const productPicture = auction.productDetail.productPicture.map(
-    (val) => `/api/picture/productPicture/${val}`
+    (val) => `/picture/productPicture/${val}`
   );
 
   // Get fraud
