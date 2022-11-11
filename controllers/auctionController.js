@@ -828,6 +828,11 @@ exports.refresh = catchAsync(async (req, res, next) => {
     return next(new AppError("Auction not found"), 400);
   }
   const auctionId = req.params.auction_id;
+  
+  const bidHistory = await BidHistory.find({
+    auctionID: auctionId,
+    bidderID: decoded.id,
+  }).sort({ biddingDate: -1 });
 
   let isAlreadyBid5Minute = false;
   let bidHistoryBefore5 = await BidHistory.find({
