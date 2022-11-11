@@ -21,10 +21,7 @@ exports.getBillingInfo = catchAsync(async (req, res, next) => {
 
   const info = {
     productName: auction.productDetail.productName,
-    productPicture: await getPicture(
-      "productPicture",
-      auction.productDetail.productPicture[0]
-    ),
+    productPicture: "/picture/productPicture/"+auction.productDetail.productPicture[0],
     auctioneerID: auction.auctioneerID,
     auctioneerName: auctioneer.displayName,
     winningPrice: billingInfo.winningPrice,
@@ -37,16 +34,9 @@ exports.getBillingInfo = catchAsync(async (req, res, next) => {
     shippingCompany: billingInfo.deliverInfo
       ? billingInfo.deliverInfo.shippingCompany
       : null,
-    packagePicture: await getPicture(
-      "packagePicture",
-      billingInfo.deliverInfo
-        ? billingInfo.deliverInfo.packagePicture
-        : "default.jpeg",
-      null,
-      null,
-      true
-
-    ),
+    packagePicture: billingInfo.deliverInfo
+      ? "/picture/packagePicture/"+billingInfo.deliverInfo.packagePicture
+      : "/picture/packagePicture/default.jpeg",
     billingInfoStatus: billingInfo.billingInfoStatus,
     isAuctioneer: decoded.id === String(auction.auctioneerID),
     failureCause : billingInfo.failureCause
