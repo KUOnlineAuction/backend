@@ -827,10 +827,11 @@ exports.refresh = catchAsync(async (req, res, next) => {
   if (!auction) {
     return next(new AppError("Auction not found"), 400);
   }
+  const auctionId = req.params.auction_id;
 
   let isAlreadyBid5Minute = false;
   let bidHistoryBefore5 = await BidHistory.find({
-    auctionID: req.params.auction_id,
+    auctionID: auctionId,
   }).sort({ biddingDate: -1 });
 
   bidHistoryBefore5 = bidHistoryBefore5.filter(
@@ -844,13 +845,11 @@ exports.refresh = catchAsync(async (req, res, next) => {
   // 5 minute System currentPrice condition
   if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
     if (
-      bidHistoryBefore5[0] &&
-      auction.endDate - bidHistoryBefore5[0].biddingDate <= 5 * 60 * 1000
+      bidHistory[0] &&
+      auction.endDate - bidHistory[0].biddingDate <= 5 * 60 * 1000
     ) {
       isAlreadyBid5Minute = true;
-      currentPrice = bidHistoryBefore5[0]
-        ? bidHistoryBefore5[0].biddingPrice
-        : 0;
+      currentPrice = bidHistory[0] ? bidHistory[0].biddingPrice : 0;
     } else {
       currentPrice = bidHistoryBefore5[0]
         ? bidHistoryBefore5[0].biddingPrice
@@ -938,15 +937,16 @@ exports.postBid = catchAsync(async (req, res, next) => {
     }
     return auction.endDate;
   };
-
-  const updatedAuction = await Auction.updateOne(
-    { _id: req.params.auction_id },
-    {
-      currentPrice: req.body.biddingPrice,
-      currentWinnerID: user_id,
-      endDate: expectedPriceCheck(auction),
-    }
-  );
+  if (auction.currentPrice < req.body.biddingPrice) {
+    const updatedAuction = await Auction.updateOne(
+      { _id: req.params.auction_id },
+      {
+        currentPrice: req.body.biddingPrice,
+        currentWinnerID: user_id,
+        endDate: expectedPriceCheck(auction),
+      }
+    );
+  }
   //4) Add to activeBiddingList if user never bid before
   if (!user.activeBiddingList.includes(req.params.auction_id)) {
     user.activeBiddingList.push(req.params.auction_id);
