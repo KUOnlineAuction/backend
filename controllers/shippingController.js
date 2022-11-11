@@ -6,6 +6,7 @@ const Report = require("./../models/reportModel");
 const catchAsync = require("./../utils/catchAsync");
 const AppError = require("./../utils/appError");
 const { getPicture, savePicture } = require("./../utils/getPicture");
+const Badge = require("./../utils/badge");
 
 const confirmItemRecieveDeadlineLength = 10;
 
@@ -105,6 +106,7 @@ exports.confirmDelivery = catchAsync(async (req, res, next) => {
       description: `User ${billingInfo.receiverName}(${auction.currentWinnerID}) did not recieve or recieve correctly from ${user.displayName}(${auction.auctioneerID})`,
     });
     user.totalAuctioned += 1;
+	badge.generateBadge(user._id);
     user.save();
   }
   billingInfo.save();
