@@ -260,6 +260,10 @@ cron.schedule("* * * * *", async () => {
       dateCreated: Date.now()
     }
     const createdRefund = await Refund.create(refund);
+
+    const auctionnerUpdate = await User.find(el.auctioneerID);
+    auctionnerUpdate.totalAuction = auctionnerUpdate.totalAuction + 1;
+    await auctionnerUpdate.save();
   }
   const billingsUpdate = await BillingInfo.updateMany(filter, update);
   console.log(
