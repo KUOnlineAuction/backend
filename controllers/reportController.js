@@ -6,7 +6,6 @@ const AppError = require("./../utils/appError");
 const jwt = require("jsonwebtoken");
 
 const { promisify } = require("util");
-const gernerateBadge = require("./../utils/badge");
 
 exports.postReport = catchAsync(async (req, res, next) => {
   let token;
@@ -46,7 +45,6 @@ exports.postReport = catchAsync(async (req, res, next) => {
   };
 
   const createdReport = await Report.create(report);
-  gernerateBadge.gernerateBadge(req.body.reportID);
 
   res.status(201).json({
     status: "success",
