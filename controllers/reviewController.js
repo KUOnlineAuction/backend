@@ -7,7 +7,6 @@ const Review = require("./../models/reviewModel");
 const AppError = require("./../utils/appError");
 const catchAsync = require("./../utils/catchAsync");
 
-const badge = require("./../utils/badge");
 
 exports.createReview = catchAsync(async (req, res, next) => {
   const auctionID = await Auction.findById(req.params.auction_id);
