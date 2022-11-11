@@ -31,6 +31,10 @@ exports.changeEndDate = catchAsync(async (req, res, next) => {
     const auction = await Auction.findByIdAndUpdate(req.params.auction_id, {
       endDate: Date.now() + 2 * 24 * 60 * 60 * 1000,
     });
+  } else if (req.query.option === "ended") {
+    const auction = await Auction.findByIdAndUpdate(req.params.auction_id, {
+      endDate: Date.now() + 10 * 1000,
+    });
   } else {
     return next(new AppError("Required query params"));
   }
@@ -59,4 +63,3 @@ exports.changeBillingInfo = catchAsync(async (req, res, next) => {
     status: "success",
   });
 });
-
