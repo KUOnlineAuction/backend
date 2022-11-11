@@ -82,8 +82,4 @@ module.exports.gernerateBadge = catchAsync(async (userId) => {
 
   // save
   user.save();
-  // #####################################
-  res.status(200).json({
-	status: "success",
-	});
 });
