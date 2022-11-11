@@ -179,7 +179,7 @@ cron.schedule("* * * * *", async() => {
 
 // Routine Checking for bidder payment deadline (Every day at midnight)
 // Act as the auction never happens in the first place and add an error message and status to auction
-cron.schedule("0 0 * * *", async () => {
+cron.schedule("* * * * *", async () => {
 // const test = async () => {
   const filter = {
     bidderPaymentDeadline: { $lt: Date.now() },
@@ -275,7 +275,7 @@ cron.schedule("* * * * *", async () => {
 // test();
 
 // // Routine checking for confirm item recieve deadline (Every day at midnight)
-cron.schedule("0 0 * * *", async () => {
+cron.schedule("* * * * *", async () => {
   const filter = {
     confirmItemRecieveDeadline: { $lt: new Date() },
     billingInfoStatus: "waitingForConfirm",
