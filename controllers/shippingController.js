@@ -32,7 +32,8 @@ exports.createDelivery = catchAsync(async (req, res, next) => {
 
   savePicture(req.body.packagePicture, "packagePicture", pictureName);
 
-  billingInfo.confirmItemRecieveDeadline = Date.now() + confirmItemRecieveDeadlineLength * 1000 * 60 * 60 * 24;
+  billingInfo.confirmItemRecieveDeadline =
+    Date.now() + confirmItemRecieveDeadlineLength * 1000 * 60 * 60 * 24;
 
   billingInfo.save();
 
@@ -91,10 +92,10 @@ exports.confirmDelivery = catchAsync(async (req, res, next) => {
   if (!billingInfo) return next(new AppError("BillingInfo not found", 400));
   billingInfo.billingInfoStatus = req.body.confirm
     ? "waitingAdminPayment"
-    : "fail";
+    : "failed";
 
   //Create reprot if deny
-  if (billingInfo.billingInfoStatus === "fail") {
+  if (billingInfo.billingInfoStatus === "failed") {
     const auction = await Auction.findById(req.params.auction_id);
     const user = await User.findById(auction.auctioneerID);
     const report = await Report.create({
@@ -103,6 +104,8 @@ exports.confirmDelivery = catchAsync(async (req, res, next) => {
       reportedID: auction.auctioneerID,
       description: `User ${billingInfo.receiverName}(${auction.currentWinnerID}) did not recieve or recieve correctly from ${user.displayName}(${auction.auctioneerID})`,
     });
+    user.totalAuctioned += 1;
+    user.save();
   }
   billingInfo.save();
   res.status(201).json({

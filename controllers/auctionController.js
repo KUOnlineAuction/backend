@@ -359,7 +359,7 @@ exports.getSummaryList = catchAsync(async (req, res, next) => {
   // );
 
   formatedAuction.forEach((val) => {
-    val.coverPicture = `http://52.220.108.182/api/picture/productPicture/${val.coverPicture}`;
+    val.coverPicture = `/picture/productPicture/${val.coverPicture}`;
   });
 
   res.status(200).json({
@@ -377,17 +377,16 @@ exports.getSearch = catchAsync(async (req, res, next) => {
   const name = req.query.name;
   const category = req.query.category;
 
-  
   const match = {
-      auctionStatus: "bidding",
+    auctionStatus: "bidding",
   };
   //1) Search by Name
-  if(name){
-	  match["productDetail.productName"] = { $regex: `${name}`, $options: "i" };
+  if (name) {
+    match["productDetail.productName"] = { $regex: `${name}`, $options: "i" };
   }
   //1) Search by Category
-  if(category){
-	  match["productDetail.category"] = category;
+  if (category) {
+    match["productDetail.category"] = category;
   }
   let auction = await Auction.aggregate([
     { $unwind: "$productDetail" },
@@ -418,7 +417,7 @@ exports.getSearch = catchAsync(async (req, res, next) => {
       // const coverPicture = obj.coverPicture[0]
       //   ? await getPicture("productPicture", obj.coverPicture[0], 300, 300)
       //   : await getPicture("productPicture", "default.jpeg", 300, 300);
-      const coverPicture = `http://52.220.108.182/api/picture/productPicture/${obj.coverPicture[0]}`;
+      const coverPicture = `/picture/productPicture/${obj.coverPicture[0]}`;
       obj.isWinning = String(obj.currentWinnerID) == decoded.id;
       obj.endDate = String(new Date(obj.endDate).getTime());
       return {
@@ -676,7 +675,7 @@ exports.getAuctionDetail = catchAsync(async (req, res, next) => {
   // );
 
   const productPicture = auction.productDetail.productPicture.map(
-    (val) => `http://52.220.108.182/api/picture/productPicture/${val}`
+    (val) => `/picture/productPicture/${val}`
   );
 
   // Get fraud
@@ -820,6 +819,7 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
 // Refresh (Finished)
 exports.refresh = catchAsync(async (req, res, next) => {
   //Check id params
+  let decoded = getUserIdFromBearer(req);
   if (!isValidObjectId(req.params.auction_id))
     return next(new AppError("Please enter valid mongoDB ID", 400));
 
@@ -828,6 +828,12 @@ exports.refresh = catchAsync(async (req, res, next) => {
   if (!auction) {
     return next(new AppError("Auction not found"), 400);
   }
+  const auctionId = req.params.auction_id;
+
+  const bidHistory = await BidHistory.find({
+    auctionID: auctionId,
+    bidderID: decoded.id,
+  }).sort({ biddingDate: -1 });
 
   let isAlreadyBid5Minute = false;
   let bidHistoryBefore5 = await BidHistory.find({
@@ -845,13 +851,11 @@ exports.refresh = catchAsync(async (req, res, next) => {
   // 5 minute System currentPrice condition
   if (auction.endDate - Date.now() <= 5 * 60 * 1000) {
     if (
-      bidHistoryBefore5[0] &&
-      auction.endDate - bidHistoryBefore5[0].biddingDate <= 5 * 60 * 1000
+      bidHistory[0] &&
+      auction.endDate - bidHistory[0].biddingDate <= 5 * 60 * 1000
     ) {
       isAlreadyBid5Minute = true;
-      currentPrice = bidHistoryBefore5[0]
-        ? bidHistoryBefore5[0].biddingPrice
-        : 0;
+      currentPrice = bidHistory[0] ? bidHistory[0].biddingPrice : 0;
     } else {
       currentPrice = bidHistoryBefore5[0]
         ? bidHistoryBefore5[0].biddingPrice
@@ -939,15 +943,16 @@ exports.postBid = catchAsync(async (req, res, next) => {
     }
     return auction.endDate;
   };
-
-  const updatedAuction = await Auction.updateOne(
-    { _id: req.params.auction_id },
-    {
-      currentPrice: req.body.biddingPrice,
-      currentWinnerID: user_id,
-      endDate: expectedPriceCheck(auction),
-    }
-  );
+  if (auction.currentPrice < req.body.biddingPrice) {
+    const updatedAuction = await Auction.updateOne(
+      { _id: req.params.auction_id },
+      {
+        currentPrice: req.body.biddingPrice,
+        currentWinnerID: user_id,
+        endDate: expectedPriceCheck(auction),
+      }
+    );
+  }
   //4) Add to activeBiddingList if user never bid before
   if (!user.activeBiddingList.includes(req.params.auction_id)) {
     user.activeBiddingList.push(req.params.auction_id);
