@@ -161,50 +161,36 @@ exports.getBadgeForAllUser = catchAsync(async (req, res, next) => {
   	const admin = { _id: "6349569da102ac2aace71591" };
   	const official = { _id: "634956b7a102ac2aace71592" };
 
-	//const array_id = [  
-	 //'633c202161c52b30bca64d4d' ,
-	 //'633d04a204a4e0fc72dbafd1' ,
-	 //'633d1f3318c297fee93d8f75' ,
-	 //'633d23beaca5874fdcbb389c' ,
-	 //'633d36bc5701384b2031c153' ,
-	 //'633d36ca5701384b2031c155' ,
-	 //'633d36d05701384b2031c157' ,
-	 //'633d36d55701384b2031c159' ,
-	 //'633d55ba1fd0d64678706896' ,
-	 //'6343fb107144977ddcaea227' ,
-	 //'634555659014b9dd3c43ab10' ,
-	 //'6346b53b25021f041c285c98' ,
-	 //'6346bfdf3511c2fd0504cb21' ,
-	 //'63492eddbe3e520dfc48a81e' ,
-	 //'63492ee4be3e520dfc48a820' ,
-	 //'63492ee9be3e520dfc48a822' ,
-	 //'63492eefbe3e520dfc48a824' ,
-	 //'63492ef3be3e520dfc48a826' ,
-	 //'63499fbbcb65921548ccdb17' ,
-	 //'634acd6c92c8764f2888d5e3' ,
-	 //'634acdbd92c8764f2888d5e5' ,
-	 //'634acdc192c8764f2888d5e7' ,
-	 //'634cf07c0eedbff49f45b731' ,
-	 //'634cfb9ede861eff7b78930f' ,
-	 //'634ebb82c74923186b691352' ,
-	 //'634ebc3dc74923186b69136f' ,
-	 //'635d45669a4287f30b392d4a' ,
-	 //'636b4c47d57e57bf9e79cf49' ,
-	 //'636b4c4bd57e57bf9e79cf4b' ]
-
-	const array_id = []
 	const allUser = await User.find().select("_id");
-	for (let i = 0 ; i < allUser.length ; i++ ){
-		//console.log(allUser[i])
-		//console.log(allUser[i]._id)
-		array_id.push(allUser[i]._id);
+	//const array_id = []
+	//for (let i = 0 ; i < allUser.length ; i++ ){
+		////console.log(allUser[i])
+		////console.log(allUser[i]._id)
+		//array_id.push(allUser[i]._id);
+	//}
+
+	const auction = await  User.find().select("successAuctioned").select("_id").select("badge");
+	auction.sort((a,b)=>{
+		return b.successAuctioned - a.successAuctioned ;
+	})
+	for (let i = 0 ; i <  auction.length ; i++ ){
+		auction[i].badge = [] ;
+		if ( i <= 10 ){
+			auction[i].badge.push(top_10);
+		}
+		else if ( i<=100 ) {
+			auction[i].badge.push(top_100);
+		}
+		//if (auction[i].badge === 0){
+			//auction[i].badge.push(newbie);
+		//}
+		auction[i].save();
 	}
 
-	for ( let i  = 0 ; i < array_id.length ; i++  ){
-		const userId = array_id[i];
+	for(let i = 0 ; i < allUser.length ; i++) {
+	//for ( let i  = 0 ; i < array_id.length ; i++  ){
+		const userId = allUser[i];
 		const user = await User.findById(userId); 
-
-		 user.badge = [];
 		   
 		 if (user.userStatus === "admin"){
 			 user.badge.push(admin)
@@ -232,34 +218,30 @@ exports.getBadgeForAllUser = catchAsync(async (req, res, next) => {
 		
 
 		  //newbie
-		 //if (user.badge.length === 0 ){
-				//user.badge.push(newbie);
-		  //}
+		 if (user.badge.length === 0 ){
+				user.badge.push(newbie);
+		  }
 		  
 		
 		 // save 
 		 user.save();
 	}
 		// top
-		const auction = await  User.find().select("successAuctioned").select("_id").select("badge");
-		auction.sort((a,b)=>{
-			return b.successAuctioned - a.successAuctioned ;
-		})
-		for (let i = 0 ; i <  auction.length ; i++ ){
-
-			if ( i <= 10 ){
-				auction[i].badge.push(top_10);
-			}
-			else if ( i<=100 ) {
-				auction[i].badge.push(top_100);
-			}
-			if (auction[i].badge === 0){
-				auction[i].badge.push(newbie);
-			}
-			auction[i].save();
-		}
 		 // #####################################
 		 res.status(200).json({
 		   status: "success",
 	  });
+});
+
+
+exports.testBadge = catchAsync(async(req,res,next)=>{
+	const allUser = await User.find().select("_id");
+	console.log(allUser.length);
+	for(let i = 0 ; i < allUser.length ; i++ ){
+		console.log(allUser[i]._id);
+	}
+
+ 	res.status(200).json({
+		status: "success",
+    });
 });
