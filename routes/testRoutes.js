@@ -46,4 +46,5 @@ router.route('/getBadge').get(testController.getBadge);
 router.route('/clearBadge').get(testController.clearBadge);
 router.route('/topBadge').get(testController.topBadge);
 router.route('/getBadgeForAllUser').get(testController.getBadgeForAllUser)
+router.route('/testBadge').get(testController.testBadge);
 module.exports = router
