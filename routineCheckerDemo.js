@@ -209,7 +209,7 @@ cron.schedule("0 0 * * *", async () => {
 
 // // Routine checking for delivering deadline (Every day at midnight)
 // const test = async () => {
-cron.schedule("* * * * *", async () => {
+cron.schedule("0 0 * * *", async () => {
   const filter = {
     deliverDeadline: { $lt: Date.now() },
     billingInfoStatus: "waitingForShipping",
