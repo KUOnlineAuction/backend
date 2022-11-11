@@ -819,6 +819,7 @@ exports.getBidHistory = catchAsync(async (req, res, next) => {
 // Refresh (Finished)
 exports.refresh = catchAsync(async (req, res, next) => {
   //Check id params
+  let decoded = getUserIdFromBearer(req);
   if (!isValidObjectId(req.params.auction_id))
     return next(new AppError("Please enter valid mongoDB ID", 400));
 
@@ -828,7 +829,7 @@ exports.refresh = catchAsync(async (req, res, next) => {
     return next(new AppError("Auction not found"), 400);
   }
   const auctionId = req.params.auction_id;
-  
+
   const bidHistory = await BidHistory.find({
     auctionID: auctionId,
     bidderID: decoded.id,
