@@ -209,11 +209,11 @@ cron.schedule("0 0 * * *", async () => {
 
 // // Routine checking for delivering deadline (Every day at midnight)
 // const test = async () => {
-cron.schedule("0 0 * * *", async () => {
+cron.schedule("* * * * *", async () => {
   const filter = {
     deliverDeadline: { $lt: Date.now() },
     billingInfoStatus: "waitingForShipping",
-    deliverDeadlineBroken: false,
+    deliverDeadlineBroken: false
   };
   const update = {
     billingInfoStatus: "failed",
@@ -239,6 +239,7 @@ cron.schedule("0 0 * * *", async () => {
     {
       $set: {
         auctioneerID: { $arrayElemAt: ["$involvedAuction.auctioneerID", 0] },
+        currentWinnerID: { $arrayElemAt: ["$involvedAuction.currentWinnerID", 0] },
       },
     },
   ]);
@@ -254,15 +255,15 @@ cron.schedule("0 0 * * *", async () => {
 
     // create refund document
     let refund = {
-      refundeeID: mongoose.Types.ObjectId(el.currentWinnerID),
+      refundeeID: el.currentWinnerID,
       refundAmount: el.slip.slipAmount,
       refundStatus: false,
       dateCreated: Date.now()
     }
     const createdRefund = await Refund.create(refund);
 
-    const auctionnerUpdate = await User.find(el.auctioneerID);
-    auctionnerUpdate.totalAuction = auctionnerUpdate.totalAuction + 1;
+    const auctionnerUpdate = await User.findById(el.auctioneerID);
+    auctionnerUpdate.totalAuctioned = auctionnerUpdate.totalAuctioned + 1;
     await auctionnerUpdate.save();
   }
   const billingsUpdate = await BillingInfo.updateMany(filter, update);
